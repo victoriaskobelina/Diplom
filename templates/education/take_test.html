@@ -1,0 +1,72 @@
+{% extends "base.html" %}
+
+{% block title %}Прохождение теста | {{ attempt.test.title }}{% endblock %}
+
+{% block content %}
+<section class="section">
+    <div class="container narrow">
+        <div class="page-head">
+            <h1>{{ attempt.test.title }}</h1>
+            <p>{{ attempt.test.description|default:"Внимательно прочитайте вопрос и выберите один правильный ответ." }}</p>
+        </div>
+
+        <div class="panel test-panel" data-timer-seconds="{{ attempt.remaining_seconds|default_if_none:'' }}">
+            <div class="test-meta">
+                <div>
+                    <span class="eyebrow">Прогресс</span>
+                    <strong>Вопрос {{ current_order }} из {{ questions_total }}</strong>
+                </div>
+                <div>
+                    <span class="eyebrow">Оставшееся время</span>
+                    <strong data-timer-display>{{ attempt.remaining_seconds|default:"Без ограничения" }}</strong>
+                </div>
+            </div>
+            <div class="progress">
+                <span style="width: {{ attempt.progress_percent }}%;"></span>
+            </div>
+
+            <article class="question-stage">
+                <h2>{{ question.text }}</h2>
+                {% if question.image %}
+                    <img src="{{ question.image.url }}" alt="Иллюстрация вопроса" class="question-image">
+                {% endif %}
+
+                <div class="answer-group">
+                    {% for option in question.options.all %}
+                        <label class="answer-option">
+                            <input
+                                type="radio"
+                                name="selected_option"
+                                value="{{ option.pk }}"
+                                data-save-url="{% url 'education:save_answer' attempt.pk question.pk %}"
+                                {% if answer.selected_option_id == option.pk %}checked{% endif %}
+                            >
+                            <span>{{ option.text }}</span>
+                        </label>
+                    {% endfor %}
+                </div>
+                <p class="field-help" data-save-status>Ответ сохраняется автоматически после выбора.</p>
+            </article>
+
+            <div class="test-actions">
+                {% if previous_order %}
+                    <a class="btn btn-secondary" href="{% url 'education:take_test' attempt.pk previous_order %}">Назад</a>
+                {% else %}
+                    <span></span>
+                {% endif %}
+
+                {% if next_order %}
+                    <a class="btn btn-primary" href="{% url 'education:take_test' attempt.pk next_order %}">Следующий вопрос</a>
+                {% endif %}
+
+                <form id="finish-form" method="post" action="{% url 'education:finish_attempt' attempt.pk %}">
+                    {% csrf_token %}
+                    <button type="submit" class="btn {% if is_last_question %}btn-primary{% else %}btn-secondary{% endif %}">
+                        {% if is_last_question %}Завершить тест{% else %}Завершить досрочно{% endif %}
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+</section>
+{% endblock %}

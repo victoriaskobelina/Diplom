@@ -1,0 +1,84 @@
+{% extends "base.html" %}
+
+{% block title %}{{ test.title }} | Конструктор теста{% endblock %}
+
+{% block content %}
+<section class="section">
+    <div class="container">
+        <div class="page-head page-head-inline">
+            <div>
+                <h1>{{ test.title }}</h1>
+                <p>{{ test.description|default:"Описание теста пока не добавлено." }}</p>
+            </div>
+            <div class="head-actions">
+                <a class="btn btn-primary" href="{% url 'education:question_create' test.pk %}">Добавить вопрос</a>
+                <a class="btn btn-secondary" href="{% url 'education:test_update' test.pk %}">Редактировать тест</a>
+                <a class="btn btn-secondary" href="{% url 'education:report_detail' test.pk %}">Аналитика</a>
+            </div>
+        </div>
+
+        <div class="stats-strip">
+            <article class="mini-stat"><span>Дисциплина</span><strong>{{ test.discipline.name }}</strong></article>
+            <article class="mini-stat"><span>Вопросов</span><strong>{{ test.question_count }}</strong></article>
+            <article class="mini-stat"><span>Лимит времени</span><strong>{{ test.time_limit_minutes }} мин</strong></article>
+            <article class="mini-stat"><span>Попыток</span><strong>{{ test.max_attempts }}</strong></article>
+        </div>
+
+        <section class="panel">
+            <div class="section-head">
+                <h2>Параметры публикации</h2>
+                <p>Настройка доступности, повторных прохождений и списка учебных групп.</p>
+            </div>
+            <div class="meta-list">
+                <span>Статус: <strong>{{ test.is_published|yesno:"Опубликован,Черновик" }}</strong></span>
+                <span>Повторное прохождение: <strong>{{ test.allow_retake|yesno:"Да,Нет" }}</strong></span>
+                <span>Группы: <strong>{{ test.groups.all|join:", "|default:"все доступные" }}</strong></span>
+            </div>
+            <form method="post" action="{% url 'education:test_delete' test.pk %}" class="inline-form danger-zone">
+                {% csrf_token %}
+                <button type="submit" class="btn btn-danger">Удалить тест</button>
+            </form>
+        </section>
+
+        <section class="panel">
+            <div class="section-head">
+                <h2>Вопросы</h2>
+                <p>Каждый вопрос может содержать изображение, набор вариантов и собственный вес в баллах.</p>
+            </div>
+            <div class="cards-grid">
+                {% for question in test.questions.all %}
+                    <article class="feature-card question-card">
+                        <div class="question-head">
+                            <span class="pill">Вопрос {{ question.order }}</span>
+                            <span>{{ question.points }} балл.</span>
+                        </div>
+                        <h3>{{ question.text }}</h3>
+                        {% if question.image %}
+                            <img src="{{ question.image.url }}" alt="Иллюстрация вопроса" class="question-image">
+                        {% endif %}
+                        <ul class="option-list">
+                            {% for option in question.options.all %}
+                                <li class="{% if option.is_correct %}correct-option{% endif %}">
+                                    {{ option.text }}
+                                </li>
+                            {% endfor %}
+                        </ul>
+                        <div class="head-actions">
+                            <a class="btn btn-secondary btn-small" href="{% url 'education:question_update' test.pk question.pk %}">Изменить</a>
+                            <form method="post" action="{% url 'education:question_delete' test.pk question.pk %}">
+                                {% csrf_token %}
+                                <button type="submit" class="btn btn-danger btn-small">Удалить</button>
+                            </form>
+                        </div>
+                    </article>
+                {% empty %}
+                    <article class="feature-card">
+                        <h3>Вопросов пока нет</h3>
+                        <p>Начните наполнение теста с первого вопроса и вариантов ответов.</p>
+                    </article>
+                {% endfor %}
+            </div>
+        </section>
+    </div>
+</section>
+{% endblock %}

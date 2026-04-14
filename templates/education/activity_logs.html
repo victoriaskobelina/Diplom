@@ -1,0 +1,61 @@
+{% extends "base.html" %}
+
+{% block title %}Журнал действий | БТЖТиС{% endblock %}
+
+{% block content %}
+<section class="section">
+    <div class="container">
+        <div class="page-head">
+            <h1>Журнал действий пользователей</h1>
+            <p>Мониторинг последних операций, связанных с авторизацией, тестированием и администрированием.</p>
+        </div>
+
+        <section class="panel">
+            <form method="get" class="filters-row">
+                <div class="form-field">
+                    <label for="{{ filter_form.action_type.id_for_label }}">{{ filter_form.action_type.label }}</label>
+                    {{ filter_form.action_type }}
+                </div>
+                <div class="form-field grow-field">
+                    <label for="{{ filter_form.user.id_for_label }}">{{ filter_form.user.label }}</label>
+                    {{ filter_form.user }}
+                </div>
+                <div class="filters-actions">
+                    <button type="submit" class="btn btn-secondary">Применить</button>
+                </div>
+            </form>
+        </section>
+
+        <section class="panel">
+            <div class="table-wrap">
+                <table class="data-table">
+                    <thead>
+                        <tr>
+                            <th>Дата</th>
+                            <th>Тип</th>
+                            <th>Пользователь</th>
+                            <th>Описание</th>
+                            <th>IP</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for log in logs %}
+                            <tr>
+                                <td>{{ log.created_at|date:"d.m.Y H:i" }}</td>
+                                <td>{{ log.get_action_type_display }}</td>
+                                <td>{{ log.user|default:"Система" }}</td>
+                                <td>{{ log.description }}</td>
+                                <td>{{ log.ip_address|default:"-" }}</td>
+                            </tr>
+                        {% empty %}
+                            <tr>
+                                <td colspan="5">Записей пока нет.</td>
+                            </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </section>
+    </div>
+</section>
+{% endblock %}

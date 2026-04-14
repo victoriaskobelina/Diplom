@@ -1,0 +1,102 @@
+{% extends "base.html" %}
+
+{% block title %}Главная | БТЖТиС{% endblock %}
+
+{% block content %}
+<section class="hero">
+    <div class="container hero-grid">
+        <div>
+            <span class="eyebrow">Цифровая образовательная среда</span>
+            <h1>Контроль знаний и аналитика успеваемости БТЖТиС в одном веб-приложении</h1>
+            <p class="hero-text">
+                Платформа объединяет тестирование студентов, инструменты преподавателя и административный контроль.
+                Система работает в браузере, сохраняет историю результатов и делает образовательный процесс прозрачным.
+            </p>
+            <div class="hero-actions">
+                {% if user.is_authenticated %}
+                    <a class="btn btn-primary" href="{% url 'education:dashboard' %}">Перейти в кабинет</a>
+                {% else %}
+                    <a class="btn btn-primary" href="{% url 'education:register' %}">Создать аккаунт</a>
+                {% endif %}
+            </div>
+            <div class="hero-note">
+                <span>Доступ для студентов, преподавателей и администрации</span>
+            </div>
+        </div>
+        {% if user.is_authenticated %}
+            <div class="hero-panel">
+                <div class="section-head">
+                    <h2>Точка входа в систему</h2>
+                    <p>
+                        После авторизации вы переходите в личный кабинет, где доступны только ваши
+                        инструменты: тестирование, аналитика, управление учебным контентом и администрирование.
+                    </p>
+                </div>
+                <div class="quick-links">
+                    <a class="quick-link" href="{% url 'education:dashboard' %}">Открыть кабинет</a>
+                    <a class="quick-link" href="{% url 'education:profile_edit' %}">Настроить профиль</a>
+                    <a class="quick-link" href="{% url 'password_change' %}">Сменить пароль</a>
+                </div>
+            </div>
+        {% else %}
+            <div class="hero-panel auth-panel" id="auth">
+                <div class="section-head">
+                    <h2>Вход в систему</h2>
+                    <p>Авторизуйтесь здесь же, на главной странице.</p>
+                </div>
+                <form method="post" class="stack-form">
+                    {% csrf_token %}
+                    {% if login_form.non_field_errors %}
+                        <div class="field-errors">
+                            {% for error in login_form.non_field_errors %}
+                                <p>{{ error }}</p>
+                            {% endfor %}
+                        </div>
+                    {% endif %}
+                    {% if next_url %}
+                        <input type="hidden" name="next" value="{{ next_url }}">
+                    {% endif %}
+                    <div class="form-grid single-column">
+                        {% for field in login_form %}
+                            <div class="form-field">
+                                <label for="{{ field.id_for_label }}">{{ field.label }}</label>
+                                {{ field }}
+                                {% for error in field.errors %}
+                                    <p class="field-error">{{ error }}</p>
+                                {% endfor %}
+                            </div>
+                        {% endfor %}
+                    </div>
+                    <div class="form-actions">
+                        <button type="submit" class="btn btn-primary">Войти</button>
+                        <a class="btn btn-secondary" href="{% url 'password_reset' %}">Забыли пароль?</a>
+                    </div>
+                </form>
+            </div>
+        {% endif %}
+    </div>
+</section>
+
+<section class="section">
+    <div class="container">
+        <div class="section-head">
+            <h2>Что умеет система</h2>
+            <p>Функциональность разделена по ролям, чтобы каждый пользователь видел только нужные ему инструменты.</p>
+        </div>
+        <div class="cards-grid">
+            <article class="feature-card">
+                <h3>Студент</h3>
+                <p>Прохождение тестов по дисциплинам, отслеживание прогресса, история результатов, просмотр ошибок и оценок.</p>
+            </article>
+            <article class="feature-card">
+                <h3>Преподаватель</h3>
+                <p>Создание тестов, конструктор вопросов, публикация, ограничения по времени и аналитика ответов студентов.</p>
+            </article>
+            <article class="feature-card">
+                <h3>Администратор</h3>
+                <p>Управление пользователями, группами и дисциплинами, мониторинг системы и просмотр журнала действий.</p>
+            </article>
+        </div>
+    </div>
+</section>
+{% endblock %}

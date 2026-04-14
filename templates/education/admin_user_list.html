@@ -1,0 +1,83 @@
+{% extends "base.html" %}
+
+{% block title %}Пользователи | БТЖТиС{% endblock %}
+
+{% block content %}
+<section class="section">
+    <div class="container">
+        <div class="page-head page-head-inline">
+            <div>
+                <h1>Управление пользователями</h1>
+                <p>Создание аккаунтов, смена ролей, блокировка и сброс паролей.</p>
+            </div>
+            <div class="head-actions">
+                <a class="btn btn-primary" href="{% url 'education:admin_user_create' %}">Добавить пользователя</a>
+            </div>
+        </div>
+
+        <section class="panel">
+            <form method="get" class="filters-row">
+                <div class="form-field">
+                    <label for="role">Роль</label>
+                    <select class="form-select" name="role" id="role">
+                        <option value="">Все</option>
+                        {% for value, label in role_choices %}
+                            <option value="{{ value }}" {% if role == value %}selected{% endif %}>{{ label }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="form-field grow-field">
+                    <label for="search">Поиск</label>
+                    <input class="form-control" type="text" name="search" id="search" value="{{ search }}" placeholder="ФИО, логин или почта">
+                </div>
+                <div class="filters-actions">
+                    <button type="submit" class="btn btn-secondary">Фильтровать</button>
+                </div>
+            </form>
+        </section>
+
+        <section class="panel">
+            <div class="table-wrap">
+                <table class="data-table">
+                    <thead>
+                        <tr>
+                            <th>Пользователь</th>
+                            <th>Роль</th>
+                            <th>Группа</th>
+                            <th>Статус</th>
+                            <th></th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for item in users %}
+                            <tr>
+                                <td>
+                                    <strong>{{ item.full_name }}</strong>
+                                    <div class="table-muted">{{ item.username }} • {{ item.email }}</div>
+                                </td>
+                                <td>{{ item.get_role_display }}</td>
+                                <td>{{ item.academic_group|default:"-" }}</td>
+                                <td>{{ item.is_active|yesno:"Активен,Заблокирован" }}</td>
+                                <td class="actions-cell">
+                                    <a class="btn btn-secondary btn-small" href="{% url 'education:admin_user_edit' item.pk %}">Изменить</a>
+                                    <a class="btn btn-secondary btn-small" href="{% url 'education:admin_user_reset_password' item.pk %}">Пароль</a>
+                                    <form method="post" action="{% url 'education:admin_user_toggle_active' item.pk %}">
+                                        {% csrf_token %}
+                                        <button type="submit" class="btn btn-danger btn-small">
+                                            {{ item.is_active|yesno:"Блокировать,Разблокировать" }}
+                                        </button>
+                                    </form>
+                                </td>
+                            </tr>
+                        {% empty %}
+                            <tr>
+                                <td colspan="5">Пользователи не найдены.</td>
+                            </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </section>
+    </div>
+</section>
+{% endblock %}

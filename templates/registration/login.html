@@ -1,0 +1,41 @@
+{% extends "base.html" %}
+
+{% block title %}Вход | БТЖТиС{% endblock %}
+
+{% block content %}
+<section class="section">
+    <div class="container narrow">
+        <div class="page-head">
+            <h1>Вход в систему</h1>
+            <p>Авторизуйтесь, чтобы открыть личный кабинет студента, преподавателя или администратора.</p>
+        </div>
+        <div class="panel">
+            <form method="post" class="stack-form">
+                {% csrf_token %}
+                {% if form.non_field_errors %}
+                    <div class="field-errors">
+                        {% for error in form.non_field_errors %}
+                            <p>{{ error }}</p>
+                        {% endfor %}
+                    </div>
+                {% endif %}
+                <div class="form-grid">
+                    {% for field in form %}
+                        <div class="form-field">
+                            <label for="{{ field.id_for_label }}">{{ field.label }}</label>
+                            {{ field }}
+                            {% for error in field.errors %}
+                                <p class="field-error">{{ error }}</p>
+                            {% endfor %}
+                        </div>
+                    {% endfor %}
+                </div>
+                <div class="form-actions">
+                    <button type="submit" class="btn btn-primary">Войти</button>
+                    <a href="{% url 'password_reset' %}" class="btn btn-secondary">Забыли пароль?</a>
+                </div>
+            </form>
+        </div>
+    </div>
+</section>
+{% endblock %}

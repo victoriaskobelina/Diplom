@@ -1,0 +1,316 @@
+from django import forms
+from django.contrib.auth.forms import UserCreationForm
+from django.core.exceptions import ValidationError
+from django.forms import BaseInlineFormSet, inlineformset_factory
+
+from .models import (
+    AcademicGroup,
+    ActivityLog,
+    AnswerOption,
+    Discipline,
+    Question,
+    Test,
+    User,
+)
+
+
+def apply_form_styles(form):
+    for field in form.fields.values():
+        widget = field.widget
+        css_class = widget.attrs.get("class", "")
+        if isinstance(widget, forms.CheckboxInput):
+            widget.attrs["class"] = f"{css_class} form-check-input".strip()
+        elif isinstance(widget, (forms.Select, forms.SelectMultiple)):
+            widget.attrs["class"] = f"{css_class} form-select".strip()
+            if isinstance(widget, forms.SelectMultiple):
+                widget.attrs.setdefault("size", 6)
+        elif isinstance(widget, forms.FileInput):
+            widget.attrs["class"] = f"{css_class} form-control form-control-file".strip()
+        else:
+            widget.attrs["class"] = f"{css_class} form-control".strip()
+
+
+class StyledFormMixin:
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        apply_form_styles(self)
+
+
+class SignUpForm(StyledFormMixin, UserCreationForm):
+    class Meta(UserCreationForm.Meta):
+        model = User
+        fields = (
+            "username",
+            "email",
+            "last_name",
+            "first_name",
+            "middle_name",
+            "phone",
+            "role",
+            "academic_group",
+            "photo",
+        )
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.fields["role"].choices = [
+            (value, label)
+            for value, label in User.Role.choices
+            if value != User.Role.ADMINISTRATOR
+        ]
+        self.fields["academic_group"].required = False
+        self.fields["email"].help_text = "Используется для восстановления пароля."
+
+    def clean_email(self):
+        email = self.cleaned_data["email"]
+        qs = User.objects.filter(email__iexact=email)
+        if self.instance.pk:
+            qs = qs.exclude(pk=self.instance.pk)
+        if qs.exists():
+            raise ValidationError("Пользователь с такой почтой уже существует.")
+        return email
+
+    def clean(self):
+        cleaned_data = super().clean()
+        role = cleaned_data.get("role")
+        group = cleaned_data.get("academic_group")
+        if role == User.Role.STUDENT and not group:
+            self.add_error("academic_group", "Для студента необходимо указать учебную группу.")
+        if role != User.Role.STUDENT:
+            cleaned_data["academic_group"] = None
+        return cleaned_data
+
+
+class ProfileForm(StyledFormMixin, forms.ModelForm):
+    remove_photo = forms.BooleanField(required=False, label="Удалить фотографию")
+
+    class Meta:
+        model = User
+        fields = (
+            "last_name",
+            "first_name",
+            "middle_name",
+            "email",
+            "phone",
+            "bio",
+            "photo",
+        )
+        widgets = {"bio": forms.Textarea(attrs={"rows": 4})}
+
+    def clean_email(self):
+        email = self.cleaned_data["email"]
+        qs = User.objects.filter(email__iexact=email).exclude(pk=self.instance.pk)
+        if qs.exists():
+            raise ValidationError("Пользователь с такой почтой уже существует.")
+        return email
+
+    def save(self, commit=True):
+        if self.cleaned_data.get("remove_photo") and self.instance.photo:
+            self.instance.photo.delete(save=False)
+            self.instance.photo = None
+        return super().save(commit=commit)
+
+
+class TeacherTestForm(StyledFormMixin, forms.ModelForm):
+    class Meta:
+        model = Test
+        fields = (
+            "title",
+            "description",
+            "discipline",
+            "groups",
+            "time_limit_minutes",
+            "max_attempts",
+            "allow_retake",
+            "is_published",
+            "available_from",
+            "available_to",
+        )
+        widgets = {
+            "description": forms.Textarea(attrs={"rows": 4}),
+            "available_from": forms.DateTimeInput(
+                format="%Y-%m-%dT%H:%M",
+                attrs={"type": "datetime-local"},
+            ),
+            "available_to": forms.DateTimeInput(
+                format="%Y-%m-%dT%H:%M",
+                attrs={"type": "datetime-local"},
+            ),
+        }
+
+    def __init__(self, *args, teacher=None, **kwargs):
+        super().__init__(*args, **kwargs)
+        disciplines = Discipline.objects.all()
+        groups = AcademicGroup.objects.all()
+        if teacher:
+            assigned_disciplines = teacher.disciplines_taught.all()
+            if assigned_disciplines.exists():
+                disciplines = assigned_disciplines
+                groups = AcademicGroup.objects.filter(disciplines__in=assigned_disciplines).distinct()
+        self.fields["discipline"].queryset = disciplines
+        self.fields["groups"].queryset = groups
+        self.fields["available_from"].input_formats = ["%Y-%m-%dT%H:%M"]
+        self.fields["available_to"].input_formats = ["%Y-%m-%dT%H:%M"]
+
+    def clean(self):
+        cleaned_data = super().clean()
+        available_from = cleaned_data.get("available_from")
+        available_to = cleaned_data.get("available_to")
+        if available_from and available_to and available_to <= available_from:
+            self.add_error("available_to", "Дата окончания должна быть позже даты начала.")
+        return cleaned_data
+
+
+class QuestionForm(StyledFormMixin, forms.ModelForm):
+    class Meta:
+        model = Question
+        fields = ("text", "image", "points", "order")
+        widgets = {"text": forms.Textarea(attrs={"rows": 4})}
+
+
+class AnswerOptionForm(StyledFormMixin, forms.ModelForm):
+    class Meta:
+        model = AnswerOption
+        fields = ("text", "is_correct", "order")
+
+
+class BaseAnswerOptionInlineFormSet(BaseInlineFormSet):
+    def clean(self):
+        super().clean()
+        active_forms = [
+            form for form in self.forms
+            if form.cleaned_data and not form.cleaned_data.get("DELETE", False)
+        ]
+        if len(active_forms) < 2:
+            raise ValidationError("Для вопроса требуется минимум два варианта ответа.")
+        correct_count = sum(1 for form in active_forms if form.cleaned_data.get("is_correct"))
+        if correct_count != 1:
+            raise ValidationError("Для вопроса должен быть выбран ровно один правильный вариант.")
+
+
+AnswerOptionFormSet = inlineformset_factory(
+    Question,
+    AnswerOption,
+    form=AnswerOptionForm,
+    formset=BaseAnswerOptionInlineFormSet,
+    fields=("text", "is_correct", "order"),
+    extra=4,
+    min_num=2,
+    validate_min=True,
+    can_delete=True,
+)
+
+
+class AdminUserForm(StyledFormMixin, forms.ModelForm):
+    password1 = forms.CharField(
+        required=False,
+        widget=forms.PasswordInput,
+        label="Пароль",
+    )
+    password2 = forms.CharField(
+        required=False,
+        widget=forms.PasswordInput,
+        label="Подтверждение пароля",
+    )
+
+    class Meta:
+        model = User
+        fields = (
+            "username",
+            "email",
+            "last_name",
+            "first_name",
+            "middle_name",
+            "phone",
+            "role",
+            "academic_group",
+            "is_active",
+            "photo",
+            "bio",
+        )
+        widgets = {"bio": forms.Textarea(attrs={"rows": 4})}
+
+    def __init__(self, *args, **kwargs):
+        self.is_create = kwargs.pop("is_create", False)
+        super().__init__(*args, **kwargs)
+        self.fields["academic_group"].required = False
+        if self.is_create:
+            self.fields["password1"].required = True
+            self.fields["password2"].required = True
+
+    def clean_email(self):
+        email = self.cleaned_data["email"]
+        qs = User.objects.filter(email__iexact=email)
+        if self.instance.pk:
+            qs = qs.exclude(pk=self.instance.pk)
+        if qs.exists():
+            raise ValidationError("Пользователь с такой почтой уже существует.")
+        return email
+
+    def clean(self):
+        cleaned_data = super().clean()
+        password1 = cleaned_data.get("password1")
+        password2 = cleaned_data.get("password2")
+        role = cleaned_data.get("role")
+        group = cleaned_data.get("academic_group")
+        if role == User.Role.STUDENT and not group:
+            self.add_error("academic_group", "Для студента необходимо указать учебную группу.")
+        if role != User.Role.STUDENT:
+            cleaned_data["academic_group"] = None
+        if password1 or password2:
+            if password1 != password2:
+                self.add_error("password2", "Пароли не совпадают.")
+        elif self.is_create:
+            self.add_error("password1", "Пароль обязателен для нового пользователя.")
+        return cleaned_data
+
+    def save(self, commit=True):
+        user = super().save(commit=False)
+        password = self.cleaned_data.get("password1")
+        if password:
+            user.set_password(password)
+        elif not user.pk:
+            user.set_unusable_password()
+        if commit:
+            user.save()
+            self.save_m2m()
+        return user
+
+
+class AdminPasswordResetForm(StyledFormMixin, forms.Form):
+    password1 = forms.CharField(widget=forms.PasswordInput, label="Новый пароль")
+    password2 = forms.CharField(widget=forms.PasswordInput, label="Подтверждение пароля")
+
+    def clean(self):
+        cleaned_data = super().clean()
+        if cleaned_data.get("password1") != cleaned_data.get("password2"):
+            self.add_error("password2", "Пароли не совпадают.")
+        return cleaned_data
+
+
+class AcademicGroupForm(StyledFormMixin, forms.ModelForm):
+    class Meta:
+        model = AcademicGroup
+        fields = ("name", "description", "curator")
+        widgets = {"description": forms.Textarea(attrs={"rows": 3})}
+
+
+class DisciplineForm(StyledFormMixin, forms.ModelForm):
+    class Meta:
+        model = Discipline
+        fields = ("name", "code", "description", "teachers", "groups")
+        widgets = {"description": forms.Textarea(attrs={"rows": 3})}
+
+
+class ActivityLogFilterForm(StyledFormMixin, forms.Form):
+    action_type = forms.ChoiceField(
+        choices=[("", "Все типы")] + list(ActivityLog.ActionType.choices),
+        required=False,
+        label="Тип действия",
+    )
+    user = forms.ModelChoiceField(
+        queryset=User.objects.all(),
+        required=False,
+        label="Пользователь",
+        empty_label="Все пользователи",
+    )

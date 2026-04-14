@@ -1,0 +1,55 @@
+{% extends "base.html" %}
+
+{% block title %}Результат теста | БТЖТиС{% endblock %}
+
+{% block content %}
+<section class="section">
+    <div class="container">
+        <div class="page-head page-head-inline">
+            <div>
+                <h1>Результат тестирования</h1>
+                <p>{{ attempt.test.title }} • {{ attempt.test.discipline.name }}</p>
+            </div>
+            {% if user == attempt.student %}
+                <div class="head-actions">
+                    <a class="btn btn-secondary" href="{% url 'education:student_dashboard' %}">Назад в кабинет</a>
+                </div>
+            {% endif %}
+        </div>
+
+        <div class="stats-strip">
+            <article class="mini-stat"><span>Баллы</span><strong>{{ attempt.score }}/{{ attempt.max_score }}</strong></article>
+            <article class="mini-stat"><span>Оценка</span><strong>{{ attempt.grade }}</strong></article>
+            <article class="mini-stat"><span>Студент</span><strong>{{ attempt.student.full_name }}</strong></article>
+            <article class="mini-stat"><span>Дата</span><strong>{{ attempt.completed_at|date:"d.m.Y H:i" }}</strong></article>
+        </div>
+
+        <section class="panel">
+            <div class="section-head">
+                <h2>Разбор ответов</h2>
+                <p>Система показывает выбранный студентом вариант и правильный ответ для каждого вопроса.</p>
+            </div>
+            <div class="cards-grid">
+                {% for answer in attempt.answers.all %}
+                    <article class="feature-card question-card">
+                        <h3>Вопрос {{ answer.question.order }}</h3>
+                        <p>{{ answer.question.text }}</p>
+                        <div class="answer-summary {% if answer.is_correct %}success-state{% else %}danger-state{% endif %}">
+                            <strong>Выбранный ответ:</strong>
+                            <span>{{ answer.selected_option|default:"Ответ не выбран" }}</span>
+                        </div>
+                        <div class="answer-summary">
+                            <strong>Правильный ответ:</strong>
+                            {% for option in answer.question.options.all %}
+                                {% if option.is_correct %}
+                                    <span>{{ option.text }}</span>
+                                {% endif %}
+                            {% endfor %}
+                        </div>
+                    </article>
+                {% endfor %}
+            </div>
+        </section>
+    </div>
+</section>
+{% endblock %}
