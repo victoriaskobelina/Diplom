@@ -1,7 +1,7 @@
 from django.test import TestCase
 from django.urls import reverse
 
-from .models import AcademicGroup, AnswerOption, Discipline, Question, Test, TestAttempt, User
+from .models import AcademicGroup, ActivityLog, AnswerOption, Discipline, Question, Test, TestAttempt, User
 
 
 class PortalSmokeTests(TestCase):
@@ -23,6 +23,14 @@ class PortalSmokeTests(TestCase):
             last_name="Сидорова",
             role=User.Role.STUDENT,
             academic_group=self.group,
+        )
+        self.admin = User.objects.create_user(
+            username="admin1",
+            password="StrongPass123",
+            email="admin@example.com",
+            first_name="Алексей",
+            last_name="Смирнов",
+            role=User.Role.ADMINISTRATOR,
         )
         self.discipline = Discipline.objects.create(name="Информатика", code="INF-01")
         self.discipline.teachers.add(self.teacher)
@@ -60,17 +68,179 @@ class PortalSmokeTests(TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertContains(response, "Контроль знаний")
         self.assertContains(response, "Вход в систему")
+        self.assertNotContains(response, "Что умеет система")
+        self.assertNotContains(response, '>Главная</a>', html=False)
 
     def test_login_route_uses_home_page(self):
         response = self.client.get(reverse("login"))
         self.assertEqual(response.status_code, 200)
         self.assertContains(response, "Вход в систему")
 
+    def test_invalid_login_message_does_not_mention_case_sensitivity(self):
+        response = self.client.post(
+            reverse("login"),
+            {"username": "student1", "password": "wrong-password"},
+        )
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "Введите правильные имя пользователя и пароль.")
+        self.assertNotContains(response, "чувствительны к регистру")
+
+    def test_register_page_uses_single_column_form(self):
+        response = self.client.get(reverse("education:register"))
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "form-grid single-column")
+        self.assertNotContains(response, '>Главная</a>', html=False)
+        self.assertNotContains(response, 'name="role"')
+        self.assertNotContains(response, 'name="photo"')
+
+    def test_registration_creates_student_even_if_role_is_posted(self):
+        response = self.client.post(
+            reverse("education:register"),
+            {
+                "username": "newuser",
+                "email": "newuser@example.com",
+                "last_name": "Иванова",
+                "first_name": "Анна",
+                "middle_name": "Сергеевна",
+                "phone": "+79000000000",
+                "role": User.Role.TEACHER,
+                "academic_group": self.group.pk,
+                "password1": "NewStrongPass123",
+                "password2": "NewStrongPass123",
+            },
+        )
+        self.assertEqual(response.status_code, 302)
+        user = User.objects.get(username="newuser")
+        self.assertEqual(user.role, User.Role.STUDENT)
+        self.assertEqual(user.academic_group, self.group)
+
     def test_teacher_dashboard_loads(self):
         self.client.login(username="teacher1", password="StrongPass123")
         response = self.client.get(reverse("education:teacher_dashboard"))
         self.assertEqual(response.status_code, 200)
         self.assertContains(response, self.test.title)
+        self.assertNotContains(response, "Завершённых попыток")
+
+    def test_report_detail_moves_student_attempts_below(self):
+        self.client.login(username="teacher1", password="StrongPass123")
+        response = self.client.get(reverse("education:report_detail", args=[self.test.pk]))
+        self.assertEqual(response.status_code, 200)
+        self.assertNotContains(response, "dashboard-grid")
+        self.assertContains(response, "panel panel-top-space")
+
+    def test_new_test_page_uses_uniform_field_sizes(self):
+        self.client.login(username="teacher1", password="StrongPass123")
+        response = self.client.get(reverse("education:test_create"))
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "uniform-field-sizes")
+        self.assertContains(response, "form-grid single-column")
+
+    def test_question_create_page_does_not_show_order_fields(self):
+        self.client.login(username="teacher1", password="StrongPass123")
+        response = self.client.get(reverse("education:question_create", args=[self.test.pk]))
+        self.assertEqual(response.status_code, 200)
+        self.assertNotContains(response, "Порядок")
+        self.assertNotContains(response, 'name="order"')
+        self.assertNotContains(response, '-order"')
+
+    def test_question_create_assigns_order_automatically(self):
+        self.client.login(username="teacher1", password="StrongPass123")
+        response = self.client.post(
+            reverse("education:question_create", args=[self.test.pk]),
+            {
+                "text": "Что используется для клиентской части проекта?",
+                "points": 3,
+                "options-TOTAL_FORMS": 4,
+                "options-INITIAL_FORMS": 0,
+                "options-MIN_NUM_FORMS": 0,
+                "options-MAX_NUM_FORMS": 1000,
+                "options-0-text": "JavaScript",
+                "options-0-is_correct": "on",
+                "options-1-text": "COBOL",
+                "options-2-text": "",
+                "options-3-text": "",
+            },
+        )
+        self.assertEqual(response.status_code, 302)
+        question = Question.objects.get(text="Что используется для клиентской части проекта?")
+        self.assertEqual(question.order, 2)
+        self.assertEqual(list(question.options.values_list("order", flat=True)), [1, 2])
+
+    def test_profile_page_shows_password_change_button(self):
+        self.client.login(username="student1", password="StrongPass123")
+        response = self.client.get(reverse("education:profile_edit"))
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "Сменить пароль")
+        self.assertNotContains(response, "Удалить фотографию")
+        self.assertNotContains(response, "remove-photo-button")
+        self.assertNotContains(response, 'name="delete_photo"')
+        self.assertNotContains(response, 'name="remove_photo"')
+        self.assertNotContains(response, 'name="photo"')
+        self.assertNotContains(response, "photo-clear_id")
+        self.assertNotContains(response, "О себе")
+
+    def test_dashboards_do_not_show_password_change_button(self):
+        self.client.login(username="student1", password="StrongPass123")
+        student_response = self.client.get(reverse("education:student_dashboard"))
+        self.assertEqual(student_response.status_code, 200)
+        self.assertNotContains(student_response, "Сменить пароль")
+
+        self.client.login(username="teacher1", password="StrongPass123")
+        teacher_response = self.client.get(reverse("education:teacher_dashboard"))
+        self.assertEqual(teacher_response.status_code, 200)
+        self.assertNotContains(teacher_response, "Сменить пароль")
+
+        self.client.login(username="admin1", password="StrongPass123")
+        admin_response = self.client.get(reverse("education:admin_dashboard"))
+        self.assertEqual(admin_response.status_code, 200)
+        self.assertNotContains(admin_response, "Сменить пароль")
+
+    def test_admin_navigation_uses_administration_label(self):
+        self.client.login(username="admin1", password="StrongPass123")
+        response = self.client.get(reverse("education:home"))
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "Администрирование")
+        self.assertNotContains(response, ">Кабинет<", html=False)
+
+    def test_admin_dashboard_does_not_show_attempts_stat(self):
+        self.client.login(username="admin1", password="StrongPass123")
+        response = self.client.get(reverse("education:admin_dashboard"))
+        self.assertEqual(response.status_code, 200)
+        self.assertNotContains(response, "Попытки")
+
+    def test_admin_can_clear_activity_logs(self):
+        self.client.login(username="admin1", password="StrongPass123")
+        ActivityLog.objects.create(
+            user=self.student,
+            action_type=ActivityLog.ActionType.AUTH,
+            description="Вход студента",
+        )
+        ActivityLog.objects.create(
+            user=self.teacher,
+            action_type=ActivityLog.ActionType.TEST,
+            description="Создание теста",
+        )
+
+        response = self.client.get(reverse("education:activity_logs"))
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "Очистить журнал")
+
+        clear_response = self.client.post(reverse("education:activity_logs_clear"))
+        self.assertEqual(clear_response.status_code, 302)
+        self.assertEqual(ActivityLog.objects.count(), 0)
+
+    def test_admin_user_form_does_not_show_about_field(self):
+        self.client.login(username="admin1", password="StrongPass123")
+        response = self.client.get(reverse("education:admin_user_create"))
+        self.assertEqual(response.status_code, 200)
+        self.assertNotContains(response, "О себе")
+        self.assertNotContains(response, 'name="photo"')
+
+    def test_admin_user_edit_uses_single_column_form(self):
+        self.client.login(username="admin1", password="StrongPass123")
+        response = self.client.get(reverse("education:admin_user_edit", args=[self.student.pk]))
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "form-grid single-column")
 
     def test_student_can_finish_test(self):
         self.client.login(username="student1", password="StrongPass123")

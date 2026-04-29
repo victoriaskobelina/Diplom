@@ -1,8 +1,7 @@
-from django.contrib import messages
+﻿from django.contrib import messages
 from django.contrib.auth import login
 from django.contrib.auth.decorators import login_required
-from django.contrib.auth.forms import AuthenticationForm
-from django.db.models import Avg, Count, Q
+from django.db.models import Avg, Count, Max, Q
 from django.http import HttpResponseForbidden, JsonResponse
 from django.shortcuts import get_object_or_404, redirect, render
 from django.utils.http import url_has_allowed_host_and_scheme
@@ -15,6 +14,7 @@ from .forms import (
     AdminUserForm,
     AnswerOptionFormSet,
     DisciplineForm,
+    LoginForm,
     ProfileForm,
     QuestionForm,
     SignUpForm,
@@ -42,7 +42,7 @@ def home(request):
             return redirect(dashboard_url_for(request.user))
     else:
         if request.method == "POST":
-            login_form = AuthenticationForm(request, data=request.POST)
+            login_form = LoginForm(request, data=request.POST)
             if login_form.is_valid():
                 user = login_form.get_user()
                 login(request, user)
@@ -61,7 +61,7 @@ def home(request):
                     next_url = None
                 return redirect(next_url or dashboard_url_for(user))
         else:
-            login_form = AuthenticationForm(request)
+            login_form = LoginForm(request)
 
     context = {"login_form": login_form, "next_url": next_url}
     return render(request, "education/home.html", context)
@@ -97,6 +97,7 @@ def register(request):
             "form": form,
             "submit_label": "Зарегистрироваться",
             "cancel_url": "education:home",
+            "single_column_form": True,
         },
     )
 
@@ -128,10 +129,11 @@ def profile_edit(request):
         "education/form_page.html",
         {
             "title": "Профиль",
-            "subtitle": "Редактирование персональных данных и фотографии.",
+            "subtitle": "Редактирование персональных данных.",
             "form": form,
             "submit_label": "Сохранить изменения",
             "cancel_url": dashboard_url_for(request.user),
+            "show_password_change": True,
         },
     )
 
@@ -192,7 +194,6 @@ def teacher_dashboard(request):
         "summary": {
             "tests_total": tests.count(),
             "published_total": tests.filter(is_published=True).count(),
-            "attempts_total": TestAttempt.objects.filter(test__author=request.user, is_finished=True).count(),
         },
     }
     return render(request, "education/teacher_dashboard.html", context)
@@ -209,7 +210,6 @@ def admin_dashboard(request):
             "groups": AcademicGroup.objects.count(),
             "disciplines": Discipline.objects.count(),
             "tests": Test.objects.count(),
-            "attempts": TestAttempt.objects.filter(is_finished=True).count(),
         },
         "recent_users": User.objects.all()[:8],
         "recent_logs": ActivityLog.objects.select_related("user")[:12],
@@ -246,6 +246,8 @@ def test_create(request):
             "form": form,
             "submit_label": "Сохранить тест",
             "cancel_url": "education:teacher_dashboard",
+            "uniform_field_sizes": True,
+            "single_column_form": True,
         },
     )
 
@@ -312,6 +314,7 @@ def question_create(request, test_pk):
         if form.is_valid() and formset.is_valid():
             question = form.save(commit=False)
             question.test = test
+            question.order = (test.questions.aggregate(max_order=Max("order")).get("max_order") or 0) + 1
             question.save()
             formset.instance = question
             formset.save()
@@ -324,7 +327,7 @@ def question_create(request, test_pk):
             messages.success(request, "Вопрос добавлен.")
             return redirect("education:test_preview", pk=test.pk)
     else:
-        form = QuestionForm(initial={"order": test.questions.count() + 1})
+        form = QuestionForm()
         formset = AnswerOptionFormSet()
 
     return render(
@@ -613,6 +616,7 @@ def admin_user_create(request):
             "form": form,
             "submit_label": "Создать пользователя",
             "cancel_url": "education:admin_user_list",
+            "single_column_form": True,
         },
     )
 
@@ -857,3 +861,11 @@ def activity_logs(request):
         "education/activity_logs.html",
         {"logs": logs[:150], "filter_form": filter_form},
     )
+
+
+@role_required(User.Role.ADMINISTRATOR)
+@require_POST
+def activity_logs_clear(request):
+    deleted_count, _ = ActivityLog.objects.all().delete()
+    messages.success(request, f"Журнал действий очищен. Удалено записей: {deleted_count}.")
+    return redirect("education:activity_logs")

@@ -1,5 +1,5 @@
 from django import forms
-from django.contrib.auth.forms import UserCreationForm
+from django.contrib.auth.forms import AuthenticationForm, UserCreationForm
 from django.core.exceptions import ValidationError
 from django.forms import BaseInlineFormSet, inlineformset_factory
 
@@ -36,6 +36,13 @@ class StyledFormMixin:
         apply_form_styles(self)
 
 
+class LoginForm(StyledFormMixin, AuthenticationForm):
+    error_messages = {
+        **AuthenticationForm.error_messages,
+        "invalid_login": "Введите правильные имя пользователя и пароль.",
+    }
+
+
 class SignUpForm(StyledFormMixin, UserCreationForm):
     class Meta(UserCreationForm.Meta):
         model = User
@@ -46,19 +53,12 @@ class SignUpForm(StyledFormMixin, UserCreationForm):
             "first_name",
             "middle_name",
             "phone",
-            "role",
             "academic_group",
-            "photo",
         )
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self.fields["role"].choices = [
-            (value, label)
-            for value, label in User.Role.choices
-            if value != User.Role.ADMINISTRATOR
-        ]
-        self.fields["academic_group"].required = False
+        self.fields["academic_group"].required = True
         self.fields["email"].help_text = "Используется для восстановления пароля."
 
     def clean_email(self):
@@ -72,18 +72,22 @@ class SignUpForm(StyledFormMixin, UserCreationForm):
 
     def clean(self):
         cleaned_data = super().clean()
-        role = cleaned_data.get("role")
         group = cleaned_data.get("academic_group")
-        if role == User.Role.STUDENT and not group:
+        if not group:
             self.add_error("academic_group", "Для студента необходимо указать учебную группу.")
-        if role != User.Role.STUDENT:
-            cleaned_data["academic_group"] = None
         return cleaned_data
 
 
-class ProfileForm(StyledFormMixin, forms.ModelForm):
-    remove_photo = forms.BooleanField(required=False, label="Удалить фотографию")
+    def save(self, commit=True):
+        user = super().save(commit=False)
+        user.role = User.Role.STUDENT
+        if commit:
+            user.save()
+            self.save_m2m()
+        return user
 
+
+class ProfileForm(StyledFormMixin, forms.ModelForm):
     class Meta:
         model = User
         fields = (
@@ -92,10 +96,7 @@ class ProfileForm(StyledFormMixin, forms.ModelForm):
             "middle_name",
             "email",
             "phone",
-            "bio",
-            "photo",
         )
-        widgets = {"bio": forms.Textarea(attrs={"rows": 4})}
 
     def clean_email(self):
         email = self.cleaned_data["email"]
@@ -103,13 +104,6 @@ class ProfileForm(StyledFormMixin, forms.ModelForm):
         if qs.exists():
             raise ValidationError("Пользователь с такой почтой уже существует.")
         return email
-
-    def save(self, commit=True):
-        if self.cleaned_data.get("remove_photo") and self.instance.photo:
-            self.instance.photo.delete(save=False)
-            self.instance.photo = None
-        return super().save(commit=commit)
-
 
 class TeacherTestForm(StyledFormMixin, forms.ModelForm):
     class Meta:
@@ -164,14 +158,14 @@ class TeacherTestForm(StyledFormMixin, forms.ModelForm):
 class QuestionForm(StyledFormMixin, forms.ModelForm):
     class Meta:
         model = Question
-        fields = ("text", "image", "points", "order")
+        fields = ("text", "image", "points")
         widgets = {"text": forms.Textarea(attrs={"rows": 4})}
 
 
 class AnswerOptionForm(StyledFormMixin, forms.ModelForm):
     class Meta:
         model = AnswerOption
-        fields = ("text", "is_correct", "order")
+        fields = ("text", "is_correct")
 
 
 class BaseAnswerOptionInlineFormSet(BaseInlineFormSet):
@@ -188,12 +182,37 @@ class BaseAnswerOptionInlineFormSet(BaseInlineFormSet):
             raise ValidationError("Для вопроса должен быть выбран ровно один правильный вариант.")
 
 
+    def save(self, commit=True):
+        active_forms = [
+            form for form in self.forms
+            if form.cleaned_data and not form.cleaned_data.get("DELETE", False)
+        ]
+        deleted_instances = [
+            form.instance for form in self.deleted_forms
+            if form.instance.pk
+        ]
+        if commit:
+            for obj in deleted_instances:
+                obj.delete()
+
+        instances = []
+        for index, form in enumerate(active_forms, start=1):
+            instance = form.save(commit=False)
+            instance.question = self.instance
+            instance.order = index
+            if commit:
+                instance.save()
+            instances.append(instance)
+
+        return instances
+
+
 AnswerOptionFormSet = inlineformset_factory(
     Question,
     AnswerOption,
     form=AnswerOptionForm,
     formset=BaseAnswerOptionInlineFormSet,
-    fields=("text", "is_correct", "order"),
+    fields=("text", "is_correct"),
     extra=4,
     min_num=2,
     validate_min=True,
@@ -225,10 +244,7 @@ class AdminUserForm(StyledFormMixin, forms.ModelForm):
             "role",
             "academic_group",
             "is_active",
-            "photo",
-            "bio",
         )
-        widgets = {"bio": forms.Textarea(attrs={"rows": 4})}
 
     def __init__(self, *args, **kwargs):
         self.is_create = kwargs.pop("is_create", False)

@@ -45,7 +45,6 @@ class User(AbstractUser):
     email = models.EmailField("Электронная почта", unique=True)
     middle_name = models.CharField("Отчество", max_length=150, blank=True)
     phone = models.CharField("Телефон", max_length=32, blank=True)
-    photo = models.ImageField("Фотография", upload_to="profiles/", blank=True, null=True)
     bio = models.TextField("О себе", blank=True)
     role = models.CharField(
         "Роль",

@@ -12,7 +12,6 @@
             </div>
             <div class="head-actions">
                 <a class="btn btn-primary" href="{% url 'education:test_create' %}">Создать тест</a>
-                <a class="btn btn-secondary" href="{% url 'education:profile_edit' %}">Профиль</a>
             </div>
         </div>
 
@@ -25,76 +24,70 @@
                 <span>Опубликовано</span>
                 <strong>{{ summary.published_total }}</strong>
             </article>
-            <article class="mini-stat">
-                <span>Завершённых попыток</span>
-                <strong>{{ summary.attempts_total }}</strong>
-            </article>
         </div>
 
-        <div class="dashboard-grid">
-            <section class="panel">
-                <div class="section-head">
-                    <h2>Мои тесты</h2>
-                    <p>Создавайте, редактируйте, публикуйте тесты и переходите к аналитике результатов.</p>
-                </div>
-                <div class="table-wrap">
-                    <table class="data-table">
-                        <thead>
+        <section class="panel panel-top-space">
+            <div class="section-head">
+                <h2>Мои тесты</h2>
+                <p>Создавайте, редактируйте, публикуйте тесты и переходите к аналитике результатов.</p>
+            </div>
+            <div class="table-wrap">
+                <table class="data-table">
+                    <thead>
+                        <tr>
+                            <th>Название</th>
+                            <th>Дисциплина</th>
+                            <th>Статус</th>
+                            <th>Попытки</th>
+                            <th>Средний балл</th>
+                            <th></th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for test in tests %}
                             <tr>
-                                <th>Название</th>
-                                <th>Дисциплина</th>
-                                <th>Статус</th>
-                                <th>Попытки</th>
-                                <th>Средний балл</th>
-                                <th></th>
+                                <td>{{ test.title }}</td>
+                                <td>{{ test.discipline.name }}</td>
+                                <td><span class="pill">{{ test.is_published|yesno:"Опубликован,Черновик" }}</span></td>
+                                <td>{{ test.attempts_total }}</td>
+                                <td>{{ test.avg_score|default:"-"|floatformat:1 }}</td>
+                                <td class="actions-cell">
+                                    <a class="btn btn-secondary btn-small" href="{% url 'education:test_preview' test.pk %}">Открыть</a>
+                                    <a class="btn btn-secondary btn-small" href="{% url 'education:report_detail' test.pk %}">Отчёт</a>
+                                </td>
                             </tr>
-                        </thead>
-                        <tbody>
-                            {% for test in tests %}
-                                <tr>
-                                    <td>{{ test.title }}</td>
-                                    <td>{{ test.discipline.name }}</td>
-                                    <td><span class="pill">{{ test.is_published|yesno:"Опубликован,Черновик" }}</span></td>
-                                    <td>{{ test.attempts_total }}</td>
-                                    <td>{{ test.avg_score|default:"-"|floatformat:1 }}</td>
-                                    <td class="actions-cell">
-                                        <a class="btn btn-secondary btn-small" href="{% url 'education:test_preview' test.pk %}">Открыть</a>
-                                        <a class="btn btn-secondary btn-small" href="{% url 'education:report_detail' test.pk %}">Отчёт</a>
-                                    </td>
-                                </tr>
-                            {% empty %}
-                                <tr>
-                                    <td colspan="6">Тесты ещё не созданы.</td>
-                                </tr>
-                            {% endfor %}
-                        </tbody>
-                    </table>
-                </div>
-            </section>
+                        {% empty %}
+                            <tr>
+                                <td colspan="6">Тесты ещё не созданы.</td>
+                            </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </section>
 
-            <section class="panel">
-                <div class="section-head">
-                    <h2>Закреплённые дисциплины</h2>
-                    <p>Список предметов и групп, по которым можно вести контроль успеваемости.</p>
-                </div>
-                <div class="cards-grid compact-grid">
-                    {% for discipline in assigned_disciplines %}
-                        <article class="feature-card">
-                            <h3>{{ discipline.name }}</h3>
-                            <p>{{ discipline.description|default:"Описание дисциплины пока не добавлено." }}</p>
-                            <div class="meta-list">
-                                <span>Группы: {{ discipline.groups.all|join:", "|default:"не назначены" }}</span>
-                            </div>
-                        </article>
-                    {% empty %}
-                        <article class="feature-card">
-                            <h3>Нет закреплённых дисциплин</h3>
-                            <p>Администратор может назначить преподавателю дисциплины и группы через административный интерфейс.</p>
-                        </article>
-                    {% endfor %}
-                </div>
-            </section>
-        </div>
+        <section class="panel panel-top-space">
+            <div class="section-head">
+                <h2>Закреплённые дисциплины</h2>
+                <p>Список предметов и групп, по которым можно вести контроль успеваемости.</p>
+            </div>
+            <div class="cards-grid compact-grid">
+                {% for discipline in assigned_disciplines %}
+                    <article class="feature-card">
+                        <h3>{{ discipline.name }}</h3>
+                        <p>{{ discipline.description|default:"Описание дисциплины пока не добавлено." }}</p>
+                        <div class="meta-list">
+                            <span>Группы: {{ discipline.groups.all|join:", "|default:"не назначены" }}</span>
+                        </div>
+                    </article>
+                {% empty %}
+                    <article class="feature-card">
+                        <h3>Нет закреплённых дисциплин</h3>
+                        <p>Администратор может назначить преподавателю дисциплины и группы через административный интерфейс.</p>
+                    </article>
+                {% endfor %}
+            </div>
+        </section>
     </div>
 </section>
 {% endblock %}

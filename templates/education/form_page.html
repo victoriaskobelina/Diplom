@@ -5,13 +5,20 @@
 {% block content %}
 <section class="section">
     <div class="container narrow">
-        <div class="page-head">
-            <h1>{{ title }}</h1>
-            {% if subtitle %}<p>{{ subtitle }}</p>{% endif %}
+        <div class="page-head{% if show_password_change %} page-head-inline{% endif %}">
+            <div>
+                <h1>{{ title }}</h1>
+                {% if subtitle %}<p>{{ subtitle }}</p>{% endif %}
+            </div>
+            {% if show_password_change %}
+                <div class="head-actions">
+                    <a class="btn btn-secondary" href="{% url 'password_change' %}">Сменить пароль</a>
+                </div>
+            {% endif %}
         </div>
 
         <div class="panel">
-            <form method="post" enctype="multipart/form-data" class="stack-form">
+            <form method="post" enctype="multipart/form-data" class="stack-form{% if uniform_field_sizes %} uniform-field-sizes{% endif %}">
                 {% csrf_token %}
                 {% for hidden in form.hidden_fields %}
                     {{ hidden }}
@@ -25,7 +32,7 @@
                     </div>
                 {% endif %}
 
-                <div class="form-grid">
+                <div class="form-grid{% if single_column_form or title == 'Редактирование пользователя' %} single-column{% endif %}">
                     {% for field in form.visible_fields %}
                         <div class="form-field {% if field.field.widget.input_type == 'checkbox' %}is-checkbox{% endif %}" data-field-name="{{ field.name }}">
                             {% if field.field.widget.input_type == 'checkbox' %}

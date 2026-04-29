@@ -23,8 +23,7 @@
             <article class="mini-stat"><span>Автор</span><strong>{{ test.author.full_name }}</strong></article>
         </div>
 
-        <div class="dashboard-grid">
-            <section class="panel">
+        <section class="panel panel-top-space">
                 <div class="section-head">
                     <h2>Статистика по вопросам</h2>
                     <p>Процент правильных ответов помогает выявить сложные темы и проблемные блоки.</p>
@@ -55,7 +54,7 @@
                 </div>
             </section>
 
-            <section class="panel">
+        <section class="panel panel-top-space">
                 <div class="section-head">
                     <h2>Попытки студентов</h2>
                     <p>Разверните карточку, чтобы посмотреть ответы конкретного студента.</p>
@@ -83,8 +82,7 @@
                         <p class="muted">Завершённых попыток пока нет.</p>
                     {% endfor %}
                 </div>
-            </section>
-        </div>
+        </section>
     </div>
 </section>
 {% endblock %}

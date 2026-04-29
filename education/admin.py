@@ -33,8 +33,6 @@ class UserAdmin(DjangoUserAdmin):
                 "fields": (
                     "middle_name",
                     "phone",
-                    "photo",
-                    "bio",
                     "role",
                     "academic_group",
                 )

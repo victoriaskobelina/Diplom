@@ -23,71 +23,67 @@
             <article class="mini-stat"><span>Группы</span><strong>{{ stats.groups }}</strong></article>
             <article class="mini-stat"><span>Дисциплины</span><strong>{{ stats.disciplines }}</strong></article>
             <article class="mini-stat"><span>Тесты</span><strong>{{ stats.tests }}</strong></article>
-            <article class="mini-stat"><span>Попытки</span><strong>{{ stats.attempts }}</strong></article>
         </div>
 
-        <div class="dashboard-grid">
-            <section class="panel">
-                <div class="section-head">
-                    <h2>Основные разделы</h2>
-                    <p>Быстрый переход к модулям администрирования.</p>
-                </div>
-                <div class="quick-links">
-                    <a class="quick-link" href="{% url 'education:admin_user_list' %}">Пользователи</a>
-                    <a class="quick-link" href="{% url 'education:group_list' %}">Учебные группы</a>
-                    <a class="quick-link" href="{% url 'education:discipline_list' %}">Дисциплины</a>
-                    <a class="quick-link" href="{% url 'education:activity_logs' %}">Журнал действий</a>
-                    <a class="quick-link" href="{% url 'education:profile_edit' %}">Профиль администратора</a>
-                </div>
-            </section>
+        <section class="panel panel-top-space">
+            <div class="section-head">
+                <h2>Основные разделы</h2>
+                <p>Быстрый переход к модулям администрирования.</p>
+            </div>
+            <div class="quick-links">
+                <a class="quick-link" href="{% url 'education:admin_user_list' %}">Пользователи</a>
+                <a class="quick-link" href="{% url 'education:group_list' %}">Учебные группы</a>
+                <a class="quick-link" href="{% url 'education:discipline_list' %}">Дисциплины</a>
+                <a class="quick-link" href="{% url 'education:activity_logs' %}">Журнал действий</a>
+            </div>
+        </section>
 
-            <section class="panel">
-                <div class="section-head">
-                    <h2>Последние пользователи</h2>
-                    <p>Новые или недавно обновлённые учётные записи.</p>
-                </div>
-                <div class="table-wrap">
-                    <table class="data-table">
-                        <thead>
+        <section class="panel panel-top-space">
+            <div class="section-head">
+                <h2>Последние пользователи</h2>
+                <p>Новые или недавно обновлённые учётные записи.</p>
+            </div>
+            <div class="table-wrap">
+                <table class="data-table">
+                    <thead>
+                        <tr>
+                            <th>Пользователь</th>
+                            <th>Роль</th>
+                            <th>Группа</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for item in recent_users %}
                             <tr>
-                                <th>Пользователь</th>
-                                <th>Роль</th>
-                                <th>Группа</th>
+                                <td>{{ item.full_name }}</td>
+                                <td>{{ item.get_role_display }}</td>
+                                <td>{{ item.academic_group|default:"-" }}</td>
                             </tr>
-                        </thead>
-                        <tbody>
-                            {% for item in recent_users %}
-                                <tr>
-                                    <td>{{ item.full_name }}</td>
-                                    <td>{{ item.get_role_display }}</td>
-                                    <td>{{ item.academic_group|default:"-" }}</td>
-                                </tr>
-                            {% endfor %}
-                        </tbody>
-                    </table>
-                </div>
-            </section>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </section>
 
-            <section class="panel">
-                <div class="section-head">
-                    <h2>Журнал действий</h2>
-                    <p>Последние операции пользователей в системе.</p>
-                </div>
-                <div class="log-list">
-                    {% for log in recent_logs %}
-                        <article class="log-item">
-                            <div>
-                                <strong>{{ log.description }}</strong>
-                                <p>{{ log.user|default:"Системное действие" }}</p>
-                            </div>
-                            <span>{{ log.created_at|date:"d.m.Y H:i" }}</span>
-                        </article>
-                    {% empty %}
-                        <p class="muted">Журнал пока пуст.</p>
-                    {% endfor %}
-                </div>
-            </section>
-        </div>
+        <section class="panel panel-top-space">
+            <div class="section-head">
+                <h2>Журнал действий</h2>
+                <p>Последние операции пользователей в системе.</p>
+            </div>
+            <div class="log-list">
+                {% for log in recent_logs %}
+                    <article class="log-item">
+                        <div>
+                            <strong>{{ log.description }}</strong>
+                            <p>{{ log.user|default:"Системное действие" }}</p>
+                        </div>
+                        <span>{{ log.created_at|date:"d.m.Y H:i" }}</span>
+                    </article>
+                {% empty %}
+                    <p class="muted">Журнал пока пуст.</p>
+                {% endfor %}
+            </div>
+        </section>
     </div>
 </section>
 {% endblock %}

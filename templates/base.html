@@ -15,17 +15,16 @@
                 <span class="brand-text">Контроль учебного процесса</span>
             </a>
             <nav class="main-nav">
-                <a href="{% url 'education:home' %}">Главная</a>
+                {% if request.resolver_match.view_name != 'education:home' and request.resolver_match.view_name != 'education:register' %}
+                    <a href="{% url 'education:home' %}">Главная</a>
+                {% endif %}
                 {% if user.is_authenticated %}
-                    <a href="{% url 'education:dashboard' %}">Кабинет</a>
-                    <a href="{% url 'education:profile_edit' %}">Профиль</a>
-                    <a href="{% url 'password_change' %}">Сменить пароль</a>
-                    {% if user.is_teacher %}
-                        <a href="{% url 'education:test_create' %}">Новый тест</a>
-                    {% endif %}
                     {% if user.is_administrator %}
                         <a href="{% url 'education:admin_dashboard' %}">Администрирование</a>
+                    {% else %}
+                        <a href="{% url 'education:dashboard' %}">Кабинет</a>
                     {% endif %}
+                    <a href="{% url 'education:profile_edit' %}">Профиль</a>
                     <form method="post" action="{% url 'logout' %}" class="inline-form">
                         {% csrf_token %}
                         <button class="nav-button" type="submit">Выйти</button>
@@ -55,13 +54,6 @@
             <div>
                 <strong>БТЖТиС</strong>
                 <p>Веб-система контроля учебного процесса для студентов, преподавателей и администрации.</p>
-            </div>
-            <div class="footer-links">
-                {% if user.is_authenticated %}
-                    <a href="{% url 'education:dashboard' %}">Мой кабинет</a>
-                {% else %}
-                    <a href="{% url 'education:register' %}">Регистрация</a>
-                {% endif %}
             </div>
         </div>
     </footer>

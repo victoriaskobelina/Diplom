@@ -14,7 +14,11 @@
             </p>
             <div class="hero-actions">
                 {% if user.is_authenticated %}
-                    <a class="btn btn-primary" href="{% url 'education:dashboard' %}">Перейти в кабинет</a>
+                    {% if user.is_administrator %}
+                        <a class="btn btn-primary" href="{% url 'education:admin_dashboard' %}">Перейти в администрирование</a>
+                    {% else %}
+                        <a class="btn btn-primary" href="{% url 'education:dashboard' %}">Перейти в кабинет</a>
+                    {% endif %}
                 {% else %}
                     <a class="btn btn-primary" href="{% url 'education:register' %}">Создать аккаунт</a>
                 {% endif %}
@@ -33,9 +37,12 @@
                     </p>
                 </div>
                 <div class="quick-links">
-                    <a class="quick-link" href="{% url 'education:dashboard' %}">Открыть кабинет</a>
+                    {% if user.is_administrator %}
+                        <a class="quick-link" href="{% url 'education:admin_dashboard' %}">Открыть администрирование</a>
+                    {% else %}
+                        <a class="quick-link" href="{% url 'education:dashboard' %}">Открыть кабинет</a>
+                    {% endif %}
                     <a class="quick-link" href="{% url 'education:profile_edit' %}">Настроить профиль</a>
-                    <a class="quick-link" href="{% url 'password_change' %}">Сменить пароль</a>
                 </div>
             </div>
         {% else %}
@@ -77,26 +84,4 @@
     </div>
 </section>
 
-<section class="section">
-    <div class="container">
-        <div class="section-head">
-            <h2>Что умеет система</h2>
-            <p>Функциональность разделена по ролям, чтобы каждый пользователь видел только нужные ему инструменты.</p>
-        </div>
-        <div class="cards-grid">
-            <article class="feature-card">
-                <h3>Студент</h3>
-                <p>Прохождение тестов по дисциплинам, отслеживание прогресса, история результатов, просмотр ошибок и оценок.</p>
-            </article>
-            <article class="feature-card">
-                <h3>Преподаватель</h3>
-                <p>Создание тестов, конструктор вопросов, публикация, ограничения по времени и аналитика ответов студентов.</p>
-            </article>
-            <article class="feature-card">
-                <h3>Администратор</h3>
-                <p>Управление пользователями, группами и дисциплинами, мониторинг системы и просмотр журнала действий.</p>
-            </article>
-        </div>
-    </div>
-</section>
 {% endblock %}

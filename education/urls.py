@@ -61,4 +61,5 @@ urlpatterns = [
         name="discipline_edit",
     ),
     path("admin-panel/logs/", views.activity_logs, name="activity_logs"),
+    path("admin-panel/logs/clear/", views.activity_logs_clear, name="activity_logs_clear"),
 ]

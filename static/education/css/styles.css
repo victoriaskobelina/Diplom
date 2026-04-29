@@ -323,6 +323,10 @@ img {
     align-items: start;
 }
 
+.panel-top-space {
+    margin-top: 20px;
+}
+
 .table-wrap {
     overflow-x: auto;
 }
@@ -355,13 +359,17 @@ img {
     display: inline-flex;
 }
 
+.danger-zone {
+    margin-top: 12px;
+}
+
 .stack-form {
     display: grid;
     gap: 22px;
 }
 
 .form-grid {
-    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+    grid-template-columns: 1fr;
 }
 
 .single-column {
@@ -371,6 +379,26 @@ img {
 .form-field {
     display: grid;
     gap: 8px;
+}
+
+.filters-row {
+    align-items: stretch;
+}
+
+.filters-row > .form-field {
+    flex: 1 1 0;
+    min-width: 0;
+}
+
+.uniform-field-sizes .form-control,
+.uniform-field-sizes .form-select {
+    min-height: 48px;
+}
+
+.uniform-field-sizes textarea.form-control,
+.uniform-field-sizes select[multiple].form-select {
+    height: 48px;
+    min-height: 48px;
 }
 
 .form-field.is-checkbox {
@@ -417,6 +445,15 @@ textarea.form-control {
 .field-help,
 .table-muted {
     font-size: 0.9rem;
+}
+
+.field-help ul {
+    margin: 6px 0 0;
+    padding-left: 18px;
+}
+
+.field-help li + li {
+    margin-top: 4px;
 }
 
 .formset-grid {
