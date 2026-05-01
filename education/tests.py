@@ -76,6 +76,14 @@ class PortalSmokeTests(TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertContains(response, "Вход в систему")
 
+    def test_password_reset_page_is_informational_only(self):
+        response = self.client.get(reverse("password_reset"))
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "centered-panel")
+        self.assertContains(response, reverse("login"))
+        self.assertNotContains(response, 'name="email"')
+        self.assertNotContains(response, "<form", html=False)
+
     def test_invalid_login_message_does_not_mention_case_sensitivity(self):
         response = self.client.post(
             reverse("login"),

@@ -233,6 +233,10 @@ img {
     font-size: 1.6rem;
 }
 
+.stats-strip-centered .mini-stat {
+    text-align: center;
+}
+
 .stats-strip-centered .mini-stat strong {
     text-align: center;
 }

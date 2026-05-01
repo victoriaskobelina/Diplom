@@ -67,6 +67,10 @@ def home(request):
     return render(request, "education/home.html", context)
 
 
+def password_reset_info(request):
+    return render(request, "registration/password_reset_form.html")
+
+
 def register(request):
     if request.user.is_authenticated:
         return redirect(dashboard_url_for(request.user))
