@@ -99,9 +99,9 @@
                     <button type="submit" class="btn btn-primary">{{ submit_label|default:"Сохранить" }}</button>
                     {% if cancel_url %}
                         {% if cancel_kwargs %}
-                            <a href="{% url cancel_url cancel_kwargs.pk %}" class="btn btn-secondary">Отмена</a>
+                            <a href="{% url cancel_url cancel_kwargs.pk %}" class="btn btn-secondary">{{ cancel_label|default:"Отмена" }}</a>
                         {% else %}
-                            <a href="{% url cancel_url %}" class="btn btn-secondary">Отмена</a>
+                            <a href="{% url cancel_url %}" class="btn btn-secondary">{{ cancel_label|default:"Отмена" }}</a>
                         {% endif %}
                     {% endif %}
                 </div>

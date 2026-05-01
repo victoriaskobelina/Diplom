@@ -76,6 +76,11 @@ class PortalSmokeTests(TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertContains(response, "Вход в систему")
 
+    def test_authenticated_user_is_redirected_from_home_page(self):
+        self.client.login(username="student1", password="StrongPass123")
+        response = self.client.get(reverse("education:home"))
+        self.assertRedirects(response, reverse("education:student_dashboard"))
+
     def test_password_reset_page_is_informational_only(self):
         response = self.client.get(reverse("password_reset"))
         self.assertEqual(response.status_code, 200)
@@ -105,6 +110,12 @@ class PortalSmokeTests(TestCase):
         self.assertContains(response, 'data-max-digits="14"')
         self.assertContains(response, 'data-mask="person-name"')
         self.assertNotContains(response, "не более 14 цифр")
+
+    def test_register_page_has_home_return_button(self):
+        response = self.client.get(reverse("education:register"))
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "На главную")
+        self.assertContains(response, 'href="/"', html=False)
 
     def test_registration_creates_student_even_if_role_is_posted(self):
         response = self.client.post(
@@ -241,6 +252,7 @@ class PortalSmokeTests(TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertContains(response, "Сменить пароль")
         self.assertNotContains(response, "Удалить фотографию")
+        self.assertNotContains(response, '>Р“Р»Р°РІРЅР°СЏ</a>', html=False)
         self.assertNotContains(response, "remove-photo-button")
         self.assertNotContains(response, 'name="delete_photo"')
         self.assertNotContains(response, 'name="remove_photo"')
@@ -267,6 +279,8 @@ class PortalSmokeTests(TestCase):
     def test_admin_navigation_uses_administration_label(self):
         self.client.login(username="admin1", password="StrongPass123")
         response = self.client.get(reverse("education:home"))
+        self.assertRedirects(response, reverse("education:admin_dashboard"))
+        response = self.client.get(reverse("education:admin_dashboard"))
         self.assertEqual(response.status_code, 200)
         self.assertContains(response, "Администрирование")
         self.assertNotContains(response, ">Кабинет<", html=False)

@@ -34,34 +34,32 @@ from .utils import dashboard_url_for, log_activity, role_required
 
 
 def home(request):
+    if request.user.is_authenticated:
+        return redirect(dashboard_url_for(request.user))
+
     login_form = None
     next_url = request.POST.get("next") or request.GET.get("next")
-
-    if request.user.is_authenticated:
-        if request.method == "POST":
-            return redirect(dashboard_url_for(request.user))
+    if request.method == "POST":
+        login_form = LoginForm(request, data=request.POST)
+        if login_form.is_valid():
+            user = login_form.get_user()
+            login(request, user)
+            log_activity(
+                request,
+                user,
+                ActivityLog.ActionType.AUTH,
+                "Пользователь вошёл в систему",
+            )
+            messages.success(request, "Вход выполнен успешно.")
+            if not url_has_allowed_host_and_scheme(
+                next_url or "",
+                allowed_hosts={request.get_host()},
+                require_https=request.is_secure(),
+            ):
+                next_url = None
+            return redirect(next_url or dashboard_url_for(user))
     else:
-        if request.method == "POST":
-            login_form = LoginForm(request, data=request.POST)
-            if login_form.is_valid():
-                user = login_form.get_user()
-                login(request, user)
-                log_activity(
-                    request,
-                    user,
-                    ActivityLog.ActionType.AUTH,
-                    "Пользователь вошёл в систему",
-                )
-                messages.success(request, "Вход выполнен успешно.")
-                if not url_has_allowed_host_and_scheme(
-                    next_url or "",
-                    allowed_hosts={request.get_host()},
-                    require_https=request.is_secure(),
-                ):
-                    next_url = None
-                return redirect(next_url or dashboard_url_for(user))
-        else:
-            login_form = LoginForm(request)
+        login_form = LoginForm(request)
 
     context = {"login_form": login_form, "next_url": next_url}
     return render(request, "education/home.html", context)
@@ -101,6 +99,7 @@ def register(request):
             "form": form,
             "submit_label": "Зарегистрироваться",
             "cancel_url": "education:home",
+            "cancel_label": "На главную",
             "single_column_form": True,
         },
     )
