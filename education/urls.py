@@ -53,12 +53,18 @@ urlpatterns = [
     path("admin-panel/groups/", views.group_list, name="group_list"),
     path("admin-panel/groups/new/", views.group_create, name="group_create"),
     path("admin-panel/groups/<int:pk>/edit/", views.group_edit, name="group_edit"),
+    path("admin-panel/groups/<int:pk>/delete/", views.group_delete, name="group_delete"),
     path("admin-panel/disciplines/", views.discipline_list, name="discipline_list"),
     path("admin-panel/disciplines/new/", views.discipline_create, name="discipline_create"),
     path(
         "admin-panel/disciplines/<int:pk>/edit/",
         views.discipline_edit,
         name="discipline_edit",
+    ),
+    path(
+        "admin-panel/disciplines/<int:pk>/delete/",
+        views.discipline_delete,
+        name="discipline_delete",
     ),
     path("admin-panel/logs/", views.activity_logs, name="activity_logs"),
     path("admin-panel/logs/clear/", views.activity_logs_clear, name="activity_logs_clear"),

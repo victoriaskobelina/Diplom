@@ -233,6 +233,10 @@ img {
     font-size: 1.6rem;
 }
 
+.stats-strip-centered .mini-stat strong {
+    text-align: center;
+}
+
 .cards-grid {
     grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
 }
@@ -247,6 +251,19 @@ img {
 
 .section-head {
     margin-bottom: 18px;
+}
+
+.section-actions {
+    margin-top: 16px;
+}
+
+.section-actions-end {
+    display: flex;
+    justify-content: flex-end;
+}
+
+.section-actions-lower {
+    margin-top: 24px;
 }
 
 .section-head h2,

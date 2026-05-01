@@ -211,8 +211,8 @@ def admin_dashboard(request):
             "disciplines": Discipline.objects.count(),
             "tests": Test.objects.count(),
         },
-        "recent_users": User.objects.all()[:8],
-        "recent_logs": ActivityLog.objects.select_related("user")[:12],
+        "recent_users": User.objects.order_by("-id")[:5],
+        "recent_logs": ActivityLog.objects.select_related("user").all()[:5],
     }
     return render(request, "education/admin_dashboard.html", context)
 
@@ -774,6 +774,22 @@ def group_edit(request, pk):
 
 
 @role_required(User.Role.ADMINISTRATOR)
+@require_POST
+def group_delete(request, pk):
+    group = get_object_or_404(AcademicGroup, pk=pk)
+    group_name = group.name
+    group.delete()
+    log_activity(
+        request,
+        request.user,
+        ActivityLog.ActionType.ADMIN,
+        f"Удалена группа {group_name}",
+    )
+    messages.success(request, f"Группа {group_name} удалена.")
+    return redirect("education:group_list")
+
+
+@role_required(User.Role.ADMINISTRATOR)
 def discipline_list(request):
     disciplines = Discipline.objects.annotate(
         tests_total=Count("tests", distinct=True),
@@ -842,6 +858,22 @@ def discipline_edit(request, pk):
             "cancel_url": "education:discipline_list",
         },
     )
+
+
+@role_required(User.Role.ADMINISTRATOR)
+@require_POST
+def discipline_delete(request, pk):
+    discipline = get_object_or_404(Discipline, pk=pk)
+    discipline_name = discipline.name
+    discipline.delete()
+    log_activity(
+        request,
+        request.user,
+        ActivityLog.ActionType.ADMIN,
+        f"Удалена дисциплина {discipline_name}",
+    )
+    messages.success(request, f"Дисциплина {discipline_name} удалена.")
+    return redirect("education:discipline_list")
 
 
 @role_required(User.Role.ADMINISTRATOR)

@@ -1,3 +1,5 @@
+import re
+
 from django import forms
 from django.contrib.auth.forms import AuthenticationForm, UserCreationForm
 from django.core.exceptions import ValidationError
@@ -60,15 +62,66 @@ class SignUpForm(StyledFormMixin, UserCreationForm):
         super().__init__(*args, **kwargs)
         self.fields["academic_group"].required = True
         self.fields["email"].help_text = "Используется для восстановления пароля."
+        self.fields["email"].widget.attrs.update(
+            {
+                "data-mask": "email",
+                "placeholder": "name@example.com",
+                "inputmode": "email",
+                "autocomplete": "email",
+                "autocapitalize": "none",
+                "spellcheck": "false",
+            }
+        )
+        self.fields["phone"].widget.attrs.update(
+            {
+                "data-mask": "phone",
+                "data-max-digits": "14",
+                "placeholder": "+7 (___) ___-__-__",
+                "inputmode": "numeric",
+                "autocomplete": "tel",
+                "maxlength": 22,
+            }
+        )
+        for field_name, autocomplete in (
+            ("last_name", "family-name"),
+            ("first_name", "given-name"),
+            ("middle_name", "additional-name"),
+        ):
+            self.fields[field_name].widget.attrs.update(
+                {
+                    "data-mask": "person-name",
+                    "autocomplete": autocomplete,
+                }
+            )
 
     def clean_email(self):
-        email = self.cleaned_data["email"]
+        email = self.cleaned_data["email"].strip().lower()
         qs = User.objects.filter(email__iexact=email)
         if self.instance.pk:
             qs = qs.exclude(pk=self.instance.pk)
         if qs.exists():
             raise ValidationError("Пользователь с такой почтой уже существует.")
         return email
+
+    def clean_phone(self):
+        phone = self.cleaned_data.get("phone", "").strip()
+        if not phone:
+            return ""
+
+        digits = re.sub(r"\D", "", phone)
+        if digits.startswith("8"):
+            digits = f"7{digits[1:]}"
+        elif not digits.startswith("7"):
+            digits = f"7{digits}"
+
+        if len(digits) < 11 or len(digits) > 14 or not digits.startswith("7"):
+            raise ValidationError("Введите телефон в формате +7 (900) 123-45-67, не более 14 цифр.")
+
+        formatted = f"+7 ({digits[1:4]}) {digits[4:7]}-{digits[7:9]}-{digits[9:11]}"
+        extension = digits[11:]
+        if extension:
+            formatted = f"{formatted} {extension}"
+        return formatted
 
     def clean(self):
         cleaned_data = super().clean()

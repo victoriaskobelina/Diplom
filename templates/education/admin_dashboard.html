@@ -15,7 +15,7 @@
             </div>
         </div>
 
-        <div class="stats-strip stats-strip-wide">
+        <div class="stats-strip stats-strip-wide stats-strip-centered">
             <article class="mini-stat"><span>Пользователи</span><strong>{{ stats.users }}</strong></article>
             <article class="mini-stat"><span>Студенты</span><strong>{{ stats.students }}</strong></article>
             <article class="mini-stat"><span>Преподаватели</span><strong>{{ stats.teachers }}</strong></article>
@@ -63,6 +63,9 @@
                     </tbody>
                 </table>
             </div>
+            <div class="section-actions section-actions-end section-actions-lower">
+                <a class="btn btn-secondary btn-small" href="{% url 'education:admin_user_list' %}">Подробнее</a>
+            </div>
         </section>
 
         <section class="panel panel-top-space">
@@ -82,6 +85,9 @@
                 {% empty %}
                     <p class="muted">Журнал пока пуст.</p>
                 {% endfor %}
+            </div>
+            <div class="section-actions section-actions-end">
+                <a class="btn btn-secondary btn-small" href="{% url 'education:activity_logs' %}">Подробнее</a>
             </div>
         </section>
     </div>

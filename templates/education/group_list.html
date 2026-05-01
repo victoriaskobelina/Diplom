@@ -35,6 +35,12 @@
                                 <td>{{ group.disciplines_total }}</td>
                                 <td class="actions-cell">
                                     <a class="btn btn-secondary btn-small" href="{% url 'education:group_edit' group.pk %}">Изменить</a>
+                                    <form method="post" action="{% url 'education:group_delete' group.pk %}" class="inline-form">
+                                        {% csrf_token %}
+                                        <button type="submit" class="btn btn-danger btn-small" onclick="return confirm('Удалить учебную группу?');">
+                                            Удалить
+                                        </button>
+                                    </form>
                                 </td>
                             </tr>
                         {% empty %}

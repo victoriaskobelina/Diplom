@@ -92,6 +92,11 @@ class PortalSmokeTests(TestCase):
         self.assertNotContains(response, '>Главная</a>', html=False)
         self.assertNotContains(response, 'name="role"')
         self.assertNotContains(response, 'name="photo"')
+        self.assertContains(response, 'data-mask="email"')
+        self.assertContains(response, 'data-mask="phone"')
+        self.assertContains(response, 'data-max-digits="14"')
+        self.assertContains(response, 'data-mask="person-name"')
+        self.assertNotContains(response, "не более 14 цифр")
 
     def test_registration_creates_student_even_if_role_is_posted(self):
         response = self.client.post(
@@ -113,6 +118,62 @@ class PortalSmokeTests(TestCase):
         user = User.objects.get(username="newuser")
         self.assertEqual(user.role, User.Role.STUDENT)
         self.assertEqual(user.academic_group, self.group)
+
+    def test_registration_normalizes_masked_phone(self):
+        response = self.client.post(
+            reverse("education:register"),
+            {
+                "username": "maskeduser",
+                "email": "masked@example.com",
+                "last_name": "Иванова",
+                "first_name": "Анна",
+                "middle_name": "Сергеевна",
+                "phone": "8 (900) 123-45-67 890",
+                "academic_group": self.group.pk,
+                "password1": "NewStrongPass123",
+                "password2": "NewStrongPass123",
+            },
+        )
+        self.assertEqual(response.status_code, 302)
+        user = User.objects.get(username="maskeduser")
+        self.assertEqual(user.phone, "+7 (900) 123-45-67 890")
+
+    def test_registration_normalizes_email(self):
+        response = self.client.post(
+            reverse("education:register"),
+            {
+                "username": "emailuser",
+                "email": "Masked.User@Example.COM",
+                "last_name": "Иванова",
+                "first_name": "Анна",
+                "middle_name": "Сергеевна",
+                "phone": "8 (900) 123-45-67",
+                "academic_group": self.group.pk,
+                "password1": "NewStrongPass123",
+                "password2": "NewStrongPass123",
+            },
+        )
+        self.assertEqual(response.status_code, 302)
+        user = User.objects.get(username="emailuser")
+        self.assertEqual(user.email, "masked.user@example.com")
+
+    def test_registration_rejects_phone_longer_than_14_digits(self):
+        response = self.client.post(
+            reverse("education:register"),
+            {
+                "username": "longphoneuser",
+                "email": "longphone@example.com",
+                "last_name": "Иванова",
+                "first_name": "Анна",
+                "middle_name": "Сергеевна",
+                "phone": "8 (900) 123-45-67 8901",
+                "academic_group": self.group.pk,
+                "password1": "NewStrongPass123",
+                "password2": "NewStrongPass123",
+            },
+        )
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "не более 14 цифр")
 
     def test_teacher_dashboard_loads(self):
         self.client.login(username="teacher1", password="StrongPass123")
@@ -207,6 +268,65 @@ class PortalSmokeTests(TestCase):
         response = self.client.get(reverse("education:admin_dashboard"))
         self.assertEqual(response.status_code, 200)
         self.assertNotContains(response, "Попытки")
+
+    def test_admin_dashboard_shows_recent_previews_with_more_links(self):
+        self.client.login(username="admin1", password="StrongPass123")
+        created_users = []
+        for index in range(6):
+            created_users.append(
+                User.objects.create_user(
+                    username=f"recentuser{index}",
+                    password="StrongPass123",
+                    email=f"recent{index}@example.com",
+                    first_name=f"Имя{index}",
+                    last_name=f"Фамилия{index}",
+                    role=User.Role.STUDENT,
+                    academic_group=self.group,
+                )
+            )
+        for index in range(6):
+            ActivityLog.objects.create(
+                user=self.admin,
+                action_type=ActivityLog.ActionType.ADMIN,
+                description=f"Запись журнала {index}",
+            )
+
+        response = self.client.get(reverse("education:admin_dashboard"))
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "stats-strip-centered")
+        self.assertContains(response, reverse("education:admin_user_list"))
+        self.assertContains(response, reverse("education:activity_logs"))
+        self.assertContains(response, "Подробнее", count=2)
+        self.assertContains(response, created_users[-1].full_name)
+        self.assertNotContains(response, created_users[0].full_name)
+        self.assertContains(response, "Запись журнала 5")
+        self.assertNotContains(response, "Запись журнала 0")
+
+    def test_admin_can_delete_group(self):
+        self.client.login(username="admin1", password="StrongPass123")
+        group_list_response = self.client.get(reverse("education:group_list"))
+        self.assertContains(group_list_response, reverse("education:group_delete", args=[self.group.pk]))
+        response = self.client.post(reverse("education:group_delete", args=[self.group.pk]))
+        self.assertRedirects(response, reverse("education:group_list"))
+        self.assertFalse(AcademicGroup.objects.filter(pk=self.group.pk).exists())
+        self.student.refresh_from_db()
+        self.assertIsNone(self.student.academic_group)
+        self.discipline.refresh_from_db()
+        self.assertEqual(self.discipline.groups.count(), 0)
+
+    def test_admin_can_delete_discipline(self):
+        self.client.login(username="admin1", password="StrongPass123")
+        discipline_list_response = self.client.get(reverse("education:discipline_list"))
+        self.assertContains(
+            discipline_list_response,
+            reverse("education:discipline_delete", args=[self.discipline.pk]),
+        )
+        response = self.client.post(reverse("education:discipline_delete", args=[self.discipline.pk]))
+        self.assertRedirects(response, reverse("education:discipline_list"))
+        self.assertFalse(Discipline.objects.filter(pk=self.discipline.pk).exists())
+        self.assertFalse(Test.objects.filter(pk=self.test.pk).exists())
+        self.assertTrue(AcademicGroup.objects.filter(pk=self.group.pk).exists())
+        self.assertTrue(User.objects.filter(pk=self.teacher.pk).exists())
 
     def test_admin_can_clear_activity_logs(self):
         self.client.login(username="admin1", password="StrongPass123")

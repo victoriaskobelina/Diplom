@@ -25,6 +25,111 @@ function initRoleDependentFields() {
     toggleAcademicGroupField();
 }
 
+function normalizePhoneDigits(value, maxDigits = 14) {
+    const rawDigits = value.replace(/\D/g, "");
+    if (!rawDigits) {
+        return "";
+    }
+
+    let digits = rawDigits;
+    if (digits.startsWith("8")) {
+        digits = `7${digits.slice(1)}`;
+    } else if (!digits.startsWith("7")) {
+        digits = `7${digits}`;
+    }
+    return digits.slice(0, maxDigits);
+}
+
+function formatPhoneValue(value, maxDigits = 14) {
+    const digits = normalizePhoneDigits(value, maxDigits);
+    if (!digits) {
+        return "";
+    }
+
+    const local = digits.slice(1, 11);
+    const extension = digits.slice(11);
+    let formatted = "+7";
+
+    if (local.length) {
+        formatted += ` (${local.slice(0, 3)}`;
+    }
+    if (local.length >= 3) {
+        formatted += ")";
+    }
+    if (local.length > 3) {
+        formatted += ` ${local.slice(3, 6)}`;
+    }
+    if (local.length > 6) {
+        formatted += `-${local.slice(6, 8)}`;
+    }
+    if (local.length > 8) {
+        formatted += `-${local.slice(8, 10)}`;
+    }
+    if (extension.length) {
+        formatted += ` ${extension}`;
+    }
+
+    return formatted;
+}
+
+function formatPersonNameValue(value) {
+    return value
+        .replace(/[^A-Za-zА-Яа-яЁё\s-]/g, "")
+        .replace(/\s{2,}/g, " ");
+}
+
+function formatEmailValue(value) {
+    return value
+        .toLowerCase()
+        .replace(/\s+/g, "")
+        .replace(/[^a-z0-9@._%+-]/g, "");
+}
+
+function initInputMasks() {
+    const phoneFields = document.querySelectorAll('input[data-mask="phone"]');
+    phoneFields.forEach((field) => {
+        const maxDigits = parseInt(field.dataset.maxDigits || "14", 10);
+        field.addEventListener("beforeinput", (event) => {
+            if (event.inputType.startsWith("insert") && event.data && /\D/.test(event.data)) {
+                event.preventDefault();
+            }
+        });
+        field.addEventListener("input", () => {
+            field.value = formatPhoneValue(field.value, maxDigits);
+        });
+        field.addEventListener("blur", () => {
+            field.value = formatPhoneValue(field.value, maxDigits);
+        });
+        field.value = formatPhoneValue(field.value, maxDigits);
+    });
+
+    const personNameFields = document.querySelectorAll('input[data-mask="person-name"]');
+    personNameFields.forEach((field) => {
+        field.addEventListener("input", () => {
+            field.value = formatPersonNameValue(field.value);
+        });
+        field.addEventListener("blur", () => {
+            field.value = formatPersonNameValue(field.value).trim();
+        });
+    });
+
+    const emailFields = document.querySelectorAll('input[data-mask="email"]');
+    emailFields.forEach((field) => {
+        field.addEventListener("beforeinput", (event) => {
+            if (event.inputType.startsWith("insert") && event.data && /\s/.test(event.data)) {
+                event.preventDefault();
+            }
+        });
+        field.addEventListener("input", () => {
+            field.value = formatEmailValue(field.value);
+        });
+        field.addEventListener("blur", () => {
+            field.value = formatEmailValue(field.value);
+        });
+        field.value = formatEmailValue(field.value);
+    });
+}
+
 function initTestAutosave() {
     const radios = document.querySelectorAll('input[type="radio"][data-save-url]');
     const statusNode = document.querySelector("[data-save-status]");
@@ -91,6 +196,7 @@ function initTestTimer() {
 
 document.addEventListener("DOMContentLoaded", () => {
     initRoleDependentFields();
+    initInputMasks();
     initTestAutosave();
     initTestTimer();
 });
