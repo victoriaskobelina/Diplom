@@ -61,12 +61,20 @@
                                 <td class="actions-cell">
                                     <a class="btn btn-secondary btn-small" href="{% url 'education:admin_user_edit' item.pk %}">Изменить</a>
                                     <a class="btn btn-secondary btn-small" href="{% url 'education:admin_user_reset_password' item.pk %}">Пароль</a>
-                                    <form method="post" action="{% url 'education:admin_user_toggle_active' item.pk %}">
+                                    <form method="post" action="{% url 'education:admin_user_toggle_active' item.pk %}" class="inline-form">
                                         {% csrf_token %}
                                         <button type="submit" class="btn btn-danger btn-small">
                                             {{ item.is_active|yesno:"Блокировать,Разблокировать" }}
                                         </button>
                                     </form>
+                                    {% if item != request.user %}
+                                        <form method="post" action="{% url 'education:admin_user_delete' item.pk %}" class="inline-form">
+                                            {% csrf_token %}
+                                            <button type="submit" class="btn btn-danger btn-small" onclick="return confirm('Удалить пользователя?');">
+                                                Удалить
+                                            </button>
+                                        </form>
+                                    {% endif %}
                                 </td>
                             </tr>
                         {% empty %}

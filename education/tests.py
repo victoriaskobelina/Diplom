@@ -401,6 +401,23 @@ class PortalSmokeTests(TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertContains(response, "form-grid single-column")
 
+    def test_admin_can_delete_user(self):
+        self.client.login(username="admin1", password="StrongPass123")
+        list_response = self.client.get(reverse("education:admin_user_list"))
+        self.assertContains(list_response, reverse("education:admin_user_delete", args=[self.student.pk]))
+
+        response = self.client.post(reverse("education:admin_user_delete", args=[self.student.pk]))
+        self.assertRedirects(response, reverse("education:admin_user_list"))
+        self.assertFalse(User.objects.filter(pk=self.student.pk).exists())
+
+    def test_admin_cannot_delete_own_account(self):
+        self.client.login(username="admin1", password="StrongPass123")
+        list_response = self.client.get(reverse("education:admin_user_list"))
+        self.assertNotContains(list_response, reverse("education:admin_user_delete", args=[self.admin.pk]))
+        response = self.client.post(reverse("education:admin_user_delete", args=[self.admin.pk]))
+        self.assertRedirects(response, reverse("education:admin_user_list"))
+        self.assertTrue(User.objects.filter(pk=self.admin.pk).exists())
+
     def test_student_can_finish_test(self):
         self.client.login(username="student1", password="StrongPass123")
         response = self.client.get(reverse("education:start_test", args=[self.test.pk]))

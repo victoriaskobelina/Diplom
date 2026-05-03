@@ -41,6 +41,11 @@ urlpatterns = [
     path("admin-panel/users/new/", views.admin_user_create, name="admin_user_create"),
     path("admin-panel/users/<int:user_pk>/edit/", views.admin_user_edit, name="admin_user_edit"),
     path(
+        "admin-panel/users/<int:user_pk>/delete/",
+        views.admin_user_delete,
+        name="admin_user_delete",
+    ),
+    path(
         "admin-panel/users/<int:user_pk>/toggle-active/",
         views.admin_user_toggle_active,
         name="admin_user_toggle_active",

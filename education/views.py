@@ -657,6 +657,26 @@ def admin_user_edit(request, user_pk):
 
 @role_required(User.Role.ADMINISTRATOR)
 @require_POST
+def admin_user_delete(request, user_pk):
+    managed_user = get_object_or_404(User, pk=user_pk)
+    if managed_user == request.user:
+        messages.error(request, "Нельзя удалить собственную учётную запись.")
+        return redirect("education:admin_user_list")
+
+    deleted_username = managed_user.username
+    managed_user.delete()
+    log_activity(
+        request,
+        request.user,
+        ActivityLog.ActionType.ADMIN,
+        f"Удалён пользователь {deleted_username}",
+    )
+    messages.success(request, "Пользователь удалён.")
+    return redirect("education:admin_user_list")
+
+
+@role_required(User.Role.ADMINISTRATOR)
+@require_POST
 def admin_user_toggle_active(request, user_pk):
     managed_user = get_object_or_404(User, pk=user_pk)
     if managed_user == request.user:
