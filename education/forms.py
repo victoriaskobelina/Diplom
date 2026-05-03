@@ -301,8 +301,11 @@ class AdminUserForm(StyledFormMixin, forms.ModelForm):
 
     def __init__(self, *args, **kwargs):
         self.is_create = kwargs.pop("is_create", False)
+        self.show_active_field = kwargs.pop("show_active_field", True)
         super().__init__(*args, **kwargs)
         self.fields["academic_group"].required = False
+        if not self.show_active_field:
+            self.fields.pop("is_active", None)
         if self.is_create:
             self.fields["password1"].required = True
             self.fields["password2"].required = True

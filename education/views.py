@@ -628,7 +628,12 @@ def admin_user_create(request):
 def admin_user_edit(request, user_pk):
     managed_user = get_object_or_404(User, pk=user_pk)
     if request.method == "POST":
-        form = AdminUserForm(request.POST, request.FILES, instance=managed_user)
+        form = AdminUserForm(
+            request.POST,
+            request.FILES,
+            instance=managed_user,
+            show_active_field=False,
+        )
         if form.is_valid():
             form.save()
             log_activity(
@@ -640,14 +645,14 @@ def admin_user_edit(request, user_pk):
             messages.success(request, "Изменения пользователя сохранены.")
             return redirect("education:admin_user_list")
     else:
-        form = AdminUserForm(instance=managed_user)
+        form = AdminUserForm(instance=managed_user, show_active_field=False)
 
     return render(
         request,
         "education/form_page.html",
         {
             "title": "Редактирование пользователя",
-            "subtitle": "Измените роль, контактные данные и статус доступа.",
+            "subtitle": "Измените роль и контактные данные пользователя.",
             "form": form,
             "submit_label": "Сохранить",
             "cancel_url": "education:admin_user_list",

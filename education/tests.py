@@ -252,6 +252,7 @@ class PortalSmokeTests(TestCase):
         response = self.client.get(reverse("education:profile_edit"))
         self.assertEqual(response.status_code, 200)
         self.assertContains(response, "Сменить пароль")
+        self.assertNotContains(response, "Активный")
         self.assertNotContains(response, "Удалить фотографию")
         self.assertNotContains(response, '>Р“Р»Р°РІРЅР°СЏ</a>', html=False)
         self.assertNotContains(response, "remove-photo-button")
@@ -400,6 +401,8 @@ class PortalSmokeTests(TestCase):
         response = self.client.get(reverse("education:admin_user_edit", args=[self.student.pk]))
         self.assertEqual(response.status_code, 200)
         self.assertContains(response, "form-grid single-column")
+        self.assertNotContains(response, 'name="is_active"')
+        self.assertNotContains(response, "Активный")
 
     def test_admin_can_delete_user(self):
         self.client.login(username="admin1", password="StrongPass123")
