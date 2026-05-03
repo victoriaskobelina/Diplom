@@ -86,6 +86,7 @@ class PortalSmokeTests(TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertContains(response, "centered-panel")
         self.assertContains(response, reverse("login"))
+        self.assertNotContains(response, '>Р“Р»Р°РІРЅР°СЏ</a>', html=False)
         self.assertNotContains(response, 'name="email"')
         self.assertNotContains(response, "<form", html=False)
 

@@ -15,7 +15,7 @@
                 <span class="brand-text">Контроль учебного процесса</span>
             </a>
             <nav class="main-nav">
-                {% if not user.is_authenticated and request.resolver_match.view_name != 'education:home' and request.resolver_match.view_name != 'education:register' and request.resolver_match.view_name != 'education:profile_edit' %}
+                {% if not user.is_authenticated and request.resolver_match.view_name != 'education:home' and request.resolver_match.view_name != 'education:register' and request.resolver_match.view_name != 'education:profile_edit' and request.resolver_match.view_name != 'password_reset' %}
                     <a href="{% url 'education:home' %}">Главная</a>
                 {% endif %}
                 {% if user.is_authenticated %}
