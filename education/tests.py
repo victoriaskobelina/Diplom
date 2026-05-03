@@ -337,6 +337,22 @@ class PortalSmokeTests(TestCase):
         self.discipline.refresh_from_db()
         self.assertEqual(self.discipline.groups.count(), 0)
 
+    def test_admin_dashboard_shows_only_three_recent_logs(self):
+        self.client.login(username="admin1", password="StrongPass123")
+        for index in range(6):
+            ActivityLog.objects.create(
+                user=self.admin,
+                action_type=ActivityLog.ActionType.ADMIN,
+                description=f"log-entry-{index}",
+            )
+
+        response = self.client.get(reverse("education:admin_dashboard"))
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "log-entry-5")
+        self.assertContains(response, "log-entry-4")
+        self.assertContains(response, "log-entry-3")
+        self.assertNotContains(response, "log-entry-2")
+
     def test_admin_can_delete_discipline(self):
         self.client.login(username="admin1", password="StrongPass123")
         discipline_list_response = self.client.get(reverse("education:discipline_list"))

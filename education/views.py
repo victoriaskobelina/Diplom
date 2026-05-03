@@ -215,7 +215,7 @@ def admin_dashboard(request):
             "tests": Test.objects.count(),
         },
         "recent_users": User.objects.order_by("-id")[:5],
-        "recent_logs": ActivityLog.objects.select_related("user").all()[:5],
+        "recent_logs": ActivityLog.objects.select_related("user").all()[:3],
     }
     return render(request, "education/admin_dashboard.html", context)
 
