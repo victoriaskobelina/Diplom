@@ -596,7 +596,12 @@ def admin_user_list(request):
 @role_required(User.Role.ADMINISTRATOR)
 def admin_user_create(request):
     if request.method == "POST":
-        form = AdminUserForm(request.POST, request.FILES, is_create=True)
+        form = AdminUserForm(
+            request.POST,
+            request.FILES,
+            is_create=True,
+            show_active_field=False,
+        )
         if form.is_valid():
             user = form.save()
             log_activity(
@@ -608,7 +613,7 @@ def admin_user_create(request):
             messages.success(request, "Пользователь создан.")
             return redirect("education:admin_user_list")
     else:
-        form = AdminUserForm(is_create=True)
+        form = AdminUserForm(is_create=True, show_active_field=False)
 
     return render(
         request,

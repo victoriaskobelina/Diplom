@@ -224,6 +224,7 @@ img {
 .stat-card,
 .mini-stat {
     padding: 18px;
+    text-align: center;
 }
 
 .stat-card strong,
@@ -231,6 +232,7 @@ img {
     display: block;
     margin-top: 8px;
     font-size: 1.6rem;
+    text-align: center;
 }
 
 .stats-strip-centered .mini-stat {

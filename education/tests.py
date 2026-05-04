@@ -106,6 +106,8 @@ class PortalSmokeTests(TestCase):
         self.assertNotContains(response, '>Главная</a>', html=False)
         self.assertNotContains(response, 'name="role"')
         self.assertNotContains(response, 'name="photo"')
+        self.assertNotContains(response, 'name="is_active"')
+        self.assertNotContains(response, "Активный")
         self.assertContains(response, 'data-mask="email"')
         self.assertContains(response, 'data-mask="phone"')
         self.assertContains(response, 'data-max-digits="14"')
