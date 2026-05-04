@@ -194,9 +194,31 @@ function initTestTimer() {
     }, 1000);
 }
 
+function initSingleCorrectCheckboxes() {
+    const checkboxes = document.querySelectorAll('input[type="checkbox"][data-single-correct="true"]');
+    if (!checkboxes.length) {
+        return;
+    }
+
+    checkboxes.forEach((checkbox) => {
+        checkbox.addEventListener("change", () => {
+            if (!checkbox.checked) {
+                return;
+            }
+
+            checkboxes.forEach((otherCheckbox) => {
+                if (otherCheckbox !== checkbox) {
+                    otherCheckbox.checked = false;
+                }
+            });
+        });
+    });
+}
+
 document.addEventListener("DOMContentLoaded", () => {
     initRoleDependentFields();
     initInputMasks();
     initTestAutosave();
     initTestTimer();
+    initSingleCorrectCheckboxes();
 });

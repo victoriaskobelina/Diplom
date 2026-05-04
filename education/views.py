@@ -381,8 +381,33 @@ def question_update(request, test_pk, question_pk):
             "submit_label": "Сохранить изменения",
             "cancel_url": "education:test_preview",
             "cancel_kwargs": {"pk": test.pk},
+            "file_delete_field": "image",
+            "file_delete_label": "Удалить изображение",
+            "file_delete_url": "education:question_image_delete",
+            "file_delete_kwargs": {"test_pk": test.pk, "question_pk": question.pk},
         },
     )
+
+
+@role_required(User.Role.TEACHER)
+@require_POST
+def question_image_delete(request, test_pk, question_pk):
+    test = get_object_or_404(Test, pk=test_pk, author=request.user)
+    question = get_object_or_404(Question, pk=question_pk, test=test)
+    if question.image:
+        question.image.delete(save=False)
+        question.image = None
+        question.save(update_fields=["image"])
+        log_activity(
+            request,
+            request.user,
+            ActivityLog.ActionType.TEST,
+            f"Удалено изображение вопроса в тесте «{test.title}»",
+        )
+        messages.success(request, "Изображение вопроса удалено.")
+    else:
+        messages.info(request, "У вопроса нет изображения для удаления.")
+    return redirect("education:question_update", test_pk=test.pk, question_pk=question.pk)
 
 
 @role_required(User.Role.TEACHER)

@@ -1,4 +1,10 @@
+import shutil
+import tempfile
+from pathlib import Path
+
+from django.core.files.uploadedfile import SimpleUploadedFile
 from django.test import TestCase
+from django.test.utils import override_settings
 from django.urls import reverse
 
 from .models import AcademicGroup, ActivityLog, AnswerOption, Discipline, Question, Test, TestAttempt, User
@@ -6,6 +12,11 @@ from .models import AcademicGroup, ActivityLog, AnswerOption, Discipline, Questi
 
 class PortalSmokeTests(TestCase):
     def setUp(self):
+        self.media_root = tempfile.mkdtemp()
+        self.media_override = override_settings(MEDIA_ROOT=self.media_root)
+        self.media_override.enable()
+        self.addCleanup(self.media_override.disable)
+        self.addCleanup(shutil.rmtree, self.media_root, ignore_errors=True)
         self.group = AcademicGroup.objects.create(name="ИС-21")
         self.teacher = User.objects.create_user(
             username="teacher1",
@@ -61,6 +72,18 @@ class PortalSmokeTests(TestCase):
             text="Pascal",
             is_correct=False,
             order=2,
+        )
+
+    def _question_image_file(self):
+        return SimpleUploadedFile(
+            "question.gif",
+            (
+                b"GIF89a\x01\x00\x01\x00\x80\x00\x00"
+                b"\x00\x00\x00\xff\xff\xff!\xf9\x04\x01"
+                b"\x00\x00\x00\x00,\x00\x00\x00\x00\x01"
+                b"\x00\x01\x00\x00\x02\x02D\x01\x00;"
+            ),
+            content_type="image/gif",
         )
 
     def test_home_page_loads(self):
@@ -225,6 +248,7 @@ class PortalSmokeTests(TestCase):
         self.assertNotContains(response, "Порядок")
         self.assertNotContains(response, 'name="order"')
         self.assertNotContains(response, '-order"')
+        self.assertContains(response, 'data-single-correct="true"')
 
     def test_question_create_assigns_order_automatically(self):
         self.client.login(username="teacher1", password="StrongPass123")
@@ -248,6 +272,36 @@ class PortalSmokeTests(TestCase):
         question = Question.objects.get(text="Что используется для клиентской части проекта?")
         self.assertEqual(question.order, 2)
         self.assertEqual(list(question.options.values_list("order", flat=True)), [1, 2])
+
+    def test_question_edit_page_uses_delete_button_for_image(self):
+        self.question.image = self._question_image_file()
+        self.question.save(update_fields=["image"])
+
+        self.client.login(username="teacher1", password="StrongPass123")
+        response = self.client.get(reverse("education:question_update", args=[self.test.pk, self.question.pk]))
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "Удалить изображение")
+        self.assertContains(
+            response,
+            reverse("education:question_image_delete", args=[self.test.pk, self.question.pk]),
+        )
+        self.assertNotContains(response, "image-clear_id")
+
+    def test_teacher_can_delete_question_image(self):
+        self.question.image = self._question_image_file()
+        self.question.save(update_fields=["image"])
+        image_name = self.question.image.name
+
+        self.client.login(username="teacher1", password="StrongPass123")
+        response = self.client.post(
+            reverse("education:question_image_delete", args=[self.test.pk, self.question.pk])
+        )
+
+        self.assertRedirects(response, reverse("education:question_update", args=[self.test.pk, self.question.pk]))
+        self.question.refresh_from_db()
+        self.assertFalse(self.question.image)
+        self.assertFalse(Path(self.media_root, image_name).exists())
 
     def test_profile_page_shows_password_change_button(self):
         self.client.login(username="student1", password="StrongPass123")

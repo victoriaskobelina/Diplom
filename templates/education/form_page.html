@@ -43,6 +43,20 @@
                             {% else %}
                                 <label for="{{ field.id_for_label }}">{{ field.label }}</label>
                                 {{ field }}
+                                {% if field.name == file_delete_field and form.instance.pk and form.instance.image %}
+                                    <div class="file-field-meta">
+                                        <img src="{{ form.instance.image.url }}" alt="Текущее изображение вопроса" class="question-image inline-image-preview">
+                                        <button
+                                            type="submit"
+                                            class="btn btn-danger btn-small"
+                                            formaction="{% url file_delete_url file_delete_kwargs.test_pk file_delete_kwargs.question_pk %}"
+                                            formnovalidate
+                                            onclick="return confirm('Удалить изображение вопроса?');"
+                                        >
+                                            {{ file_delete_label }}
+                                        </button>
+                                    </div>
+                                {% endif %}
                             {% endif %}
                             {% if field.help_text %}<p class="field-help">{{ field.help_text }}</p>{% endif %}
                             {% for error in field.errors %}

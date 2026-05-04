@@ -212,13 +212,20 @@ class QuestionForm(StyledFormMixin, forms.ModelForm):
     class Meta:
         model = Question
         fields = ("text", "image", "points")
-        widgets = {"text": forms.Textarea(attrs={"rows": 4})}
+        widgets = {
+            "text": forms.Textarea(attrs={"rows": 4}),
+            "image": forms.FileInput(),
+        }
 
 
 class AnswerOptionForm(StyledFormMixin, forms.ModelForm):
     class Meta:
         model = AnswerOption
         fields = ("text", "is_correct")
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.fields["is_correct"].widget.attrs["data-single-correct"] = "true"
 
 
 class BaseAnswerOptionInlineFormSet(BaseInlineFormSet):

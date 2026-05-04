@@ -22,6 +22,11 @@ urlpatterns = [
         name="question_update",
     ),
     path(
+        "teacher/tests/<int:test_pk>/questions/<int:question_pk>/delete-image/",
+        views.question_image_delete,
+        name="question_image_delete",
+    ),
+    path(
         "teacher/tests/<int:test_pk>/questions/<int:question_pk>/delete/",
         views.question_delete,
         name="question_delete",

@@ -404,6 +404,16 @@ img {
     gap: 8px;
 }
 
+.file-field-meta {
+    display: grid;
+    gap: 12px;
+    justify-items: start;
+}
+
+.inline-image-preview {
+    max-width: 320px;
+}
+
 .filters-row {
     align-items: stretch;
 }
