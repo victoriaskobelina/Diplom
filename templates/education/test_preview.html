@@ -43,14 +43,13 @@
         <section class="panel panel-top-space">
             <div class="section-head">
                 <h2>Вопросы</h2>
-                <p>Каждый вопрос может содержать изображение, набор вариантов и собственный вес в баллах.</p>
+                <p>Каждый вопрос может содержать изображение, набор вариантов и оценивается в 1 балл.</p>
             </div>
             <div class="cards-grid">
                 {% for question in test.questions.all %}
                     <article class="feature-card question-card">
                         <div class="question-head">
                             <span class="pill">Вопрос {{ question.order }}</span>
-                            <span>{{ question.points }} балл.</span>
                         </div>
                         <h3>{{ question.text }}</h3>
                         {% if question.image %}

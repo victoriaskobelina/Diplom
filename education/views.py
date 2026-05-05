@@ -98,8 +98,6 @@ def register(request):
             "subtitle": "Создание учетной записи в системе контроля учебного процесса.",
             "form": form,
             "submit_label": "Зарегистрироваться",
-            "cancel_url": "education:home",
-            "cancel_label": "На главную",
             "single_column_form": True,
         },
     )
@@ -223,7 +221,7 @@ def admin_dashboard(request):
 @role_required(User.Role.TEACHER)
 def test_create(request):
     if request.method == "POST":
-        form = TeacherTestForm(request.POST, teacher=request.user)
+        form = TeacherTestForm(request.POST, teacher=request.user, show_published_field=False)
         if form.is_valid():
             test = form.save(commit=False)
             test.author = request.user
@@ -238,7 +236,7 @@ def test_create(request):
             messages.success(request, "Тест создан. Теперь добавьте вопросы.")
             return redirect("education:test_preview", pk=test.pk)
     else:
-        form = TeacherTestForm(teacher=request.user)
+        form = TeacherTestForm(teacher=request.user, show_published_field=False)
 
     return render(
         request,
@@ -338,7 +336,7 @@ def question_create(request, test_pk):
         "education/form_page.html",
         {
             "title": "Добавление вопроса",
-            "subtitle": "Укажите текст вопроса, баллы и варианты ответов.",
+            "subtitle": "Укажите текст вопроса, изображение и варианты ответов.",
             "form": form,
             "formset": formset,
             "submit_label": "Сохранить вопрос",

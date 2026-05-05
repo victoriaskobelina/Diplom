@@ -194,6 +194,25 @@ function initTestTimer() {
     }, 1000);
 }
 
+window.enforceSingleCorrectCheckbox = function(currentCheckbox) {
+    if (!currentCheckbox || !currentCheckbox.checked) {
+        return;
+    }
+
+    const scope =
+        currentCheckbox.closest(".formset-grid") ||
+        currentCheckbox.closest("form") ||
+        document;
+
+    scope
+        .querySelectorAll('input[type="checkbox"][data-single-correct="true"]')
+        .forEach((otherCheckbox) => {
+            if (otherCheckbox !== currentCheckbox) {
+                otherCheckbox.checked = false;
+            }
+        });
+};
+
 function initSingleCorrectCheckboxes() {
     const checkboxes = document.querySelectorAll('input[type="checkbox"][data-single-correct="true"]');
     if (!checkboxes.length) {
@@ -202,15 +221,7 @@ function initSingleCorrectCheckboxes() {
 
     checkboxes.forEach((checkbox) => {
         checkbox.addEventListener("change", () => {
-            if (!checkbox.checked) {
-                return;
-            }
-
-            checkboxes.forEach((otherCheckbox) => {
-                if (otherCheckbox !== checkbox) {
-                    otherCheckbox.checked = false;
-                }
-            });
+            window.enforceSingleCorrectCheckbox(checkbox);
         });
     });
 }

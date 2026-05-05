@@ -53,7 +53,9 @@
                             <tr>
                                 <td>
                                     <strong>{{ item.full_name }}</strong>
-                                    <div class="table-muted">{{ item.username }} • {{ item.email }}</div>
+                                <div class="table-muted">
+                                    {{ item.username }}{% if item.email %} • {{ item.email }}{% endif %}
+                                </div>
                                 </td>
                                 <td>{{ item.get_role_display }}</td>
                                 <td>{{ item.academic_group|default:"-" }}</td>

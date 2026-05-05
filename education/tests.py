@@ -58,7 +58,6 @@ class PortalSmokeTests(TestCase):
         self.question = Question.objects.create(
             test=self.test,
             text="Какой язык используется для серверной части проекта?",
-            points=2,
             order=1,
         )
         self.correct_option = AnswerOption.objects.create(
@@ -126,7 +125,7 @@ class PortalSmokeTests(TestCase):
         response = self.client.get(reverse("education:register"))
         self.assertEqual(response.status_code, 200)
         self.assertContains(response, "form-grid single-column")
-        self.assertNotContains(response, '>Главная</a>', html=False)
+        self.assertContains(response, '>Главная</a>', html=False)
         self.assertNotContains(response, 'name="role"')
         self.assertNotContains(response, 'name="photo"')
         self.assertNotContains(response, 'name="is_active"')
@@ -135,13 +134,16 @@ class PortalSmokeTests(TestCase):
         self.assertContains(response, 'data-mask="phone"')
         self.assertContains(response, 'data-max-digits="14"')
         self.assertContains(response, 'data-mask="person-name"')
+        self.assertNotContains(response, "Используется для восстановления пароля.")
+        self.assertNotContains(response, "Обязательное поле.")
         self.assertNotContains(response, "не более 14 цифр")
 
-    def test_register_page_has_home_return_button(self):
+    def test_register_page_has_home_nav_button(self):
         response = self.client.get(reverse("education:register"))
         self.assertEqual(response.status_code, 200)
-        self.assertContains(response, "На главную")
+        self.assertContains(response, "Главная")
         self.assertContains(response, 'href="/"', html=False)
+        self.assertNotContains(response, "На главную")
 
     def test_registration_creates_student_even_if_role_is_posted(self):
         response = self.client.post(
@@ -163,6 +165,25 @@ class PortalSmokeTests(TestCase):
         user = User.objects.get(username="newuser")
         self.assertEqual(user.role, User.Role.STUDENT)
         self.assertEqual(user.academic_group, self.group)
+
+    def test_registration_allows_empty_email(self):
+        response = self.client.post(
+            reverse("education:register"),
+            {
+                "username": "userwithoutemail",
+                "email": "",
+                "last_name": "Иванова",
+                "first_name": "Анна",
+                "middle_name": "Сергеевна",
+                "phone": "+79000000000",
+                "academic_group": self.group.pk,
+                "password1": "NewStrongPass123",
+                "password2": "NewStrongPass123",
+            },
+        )
+        self.assertEqual(response.status_code, 302)
+        user = User.objects.get(username="userwithoutemail")
+        self.assertIsNone(user.email)
 
     def test_registration_normalizes_masked_phone(self):
         response = self.client.post(
@@ -240,15 +261,27 @@ class PortalSmokeTests(TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertContains(response, "uniform-field-sizes")
         self.assertContains(response, "form-grid single-column")
+        self.assertNotContains(response, "Опубликован")
+        self.assertNotContains(response, 'name="is_published"')
+
+    def test_test_edit_page_keeps_publish_checkbox(self):
+        self.client.login(username="teacher1", password="StrongPass123")
+        response = self.client.get(reverse("education:test_update", args=[self.test.pk]))
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "Опубликован")
+        self.assertContains(response, 'name="is_published"')
 
     def test_question_create_page_does_not_show_order_fields(self):
         self.client.login(username="teacher1", password="StrongPass123")
         response = self.client.get(reverse("education:question_create", args=[self.test.pk]))
         self.assertEqual(response.status_code, 200)
         self.assertNotContains(response, "Порядок")
+        self.assertNotContains(response, "Баллы")
         self.assertNotContains(response, 'name="order"')
+        self.assertNotContains(response, 'name="points"')
         self.assertNotContains(response, '-order"')
         self.assertContains(response, 'data-single-correct="true"')
+        self.assertContains(response, 'window.enforceSingleCorrectCheckbox(this)')
 
     def test_question_create_assigns_order_automatically(self):
         self.client.login(username="teacher1", password="StrongPass123")
@@ -256,7 +289,6 @@ class PortalSmokeTests(TestCase):
             reverse("education:question_create", args=[self.test.pk]),
             {
                 "text": "Что используется для клиентской части проекта?",
-                "points": 3,
                 "options-TOTAL_FORMS": 4,
                 "options-INITIAL_FORMS": 0,
                 "options-MIN_NUM_FORMS": 0,
@@ -287,6 +319,7 @@ class PortalSmokeTests(TestCase):
             reverse("education:question_image_delete", args=[self.test.pk, self.question.pk]),
         )
         self.assertNotContains(response, "image-clear_id")
+        self.assertContains(response, 'window.enforceSingleCorrectCheckbox(this)')
 
     def test_teacher_can_delete_question_image(self):
         self.question.image = self._question_image_file()
@@ -491,4 +524,4 @@ class PortalSmokeTests(TestCase):
         self.assertEqual(finish_response.status_code, 302)
         attempt.refresh_from_db()
         self.assertTrue(attempt.is_finished)
-        self.assertEqual(attempt.score, 2)
+        self.assertEqual(attempt.score, 1)

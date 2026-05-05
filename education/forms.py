@@ -61,7 +61,9 @@ class SignUpForm(StyledFormMixin, UserCreationForm):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.fields["academic_group"].required = True
-        self.fields["email"].help_text = "Используется для восстановления пароля."
+        self.fields["username"].help_text = ""
+        self.fields["email"].required = False
+        self.fields["email"].help_text = ""
         self.fields["email"].widget.attrs.update(
             {
                 "data-mask": "email",
@@ -95,7 +97,9 @@ class SignUpForm(StyledFormMixin, UserCreationForm):
             )
 
     def clean_email(self):
-        email = self.cleaned_data["email"].strip().lower()
+        email = (self.cleaned_data.get("email") or "").strip().lower()
+        if not email:
+            return None
         qs = User.objects.filter(email__iexact=email)
         if self.instance.pk:
             qs = qs.exclude(pk=self.instance.pk)
@@ -152,7 +156,9 @@ class ProfileForm(StyledFormMixin, forms.ModelForm):
         )
 
     def clean_email(self):
-        email = self.cleaned_data["email"]
+        email = (self.cleaned_data.get("email") or "").strip().lower()
+        if not email:
+            return None
         qs = User.objects.filter(email__iexact=email).exclude(pk=self.instance.pk)
         if qs.exists():
             raise ValidationError("Пользователь с такой почтой уже существует.")
@@ -185,7 +191,7 @@ class TeacherTestForm(StyledFormMixin, forms.ModelForm):
             ),
         }
 
-    def __init__(self, *args, teacher=None, **kwargs):
+    def __init__(self, *args, teacher=None, show_published_field=True, **kwargs):
         super().__init__(*args, **kwargs)
         disciplines = Discipline.objects.all()
         groups = AcademicGroup.objects.all()
@@ -196,6 +202,8 @@ class TeacherTestForm(StyledFormMixin, forms.ModelForm):
                 groups = AcademicGroup.objects.filter(disciplines__in=assigned_disciplines).distinct()
         self.fields["discipline"].queryset = disciplines
         self.fields["groups"].queryset = groups
+        if not show_published_field:
+            self.fields.pop("is_published", None)
         self.fields["available_from"].input_formats = ["%Y-%m-%dT%H:%M"]
         self.fields["available_to"].input_formats = ["%Y-%m-%dT%H:%M"]
 
@@ -211,7 +219,7 @@ class TeacherTestForm(StyledFormMixin, forms.ModelForm):
 class QuestionForm(StyledFormMixin, forms.ModelForm):
     class Meta:
         model = Question
-        fields = ("text", "image", "points")
+        fields = ("text", "image")
         widgets = {
             "text": forms.Textarea(attrs={"rows": 4}),
             "image": forms.FileInput(),
@@ -226,6 +234,7 @@ class AnswerOptionForm(StyledFormMixin, forms.ModelForm):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.fields["is_correct"].widget.attrs["data-single-correct"] = "true"
+        self.fields["is_correct"].widget.attrs["onclick"] = "window.enforceSingleCorrectCheckbox(this)"
 
 
 class BaseAnswerOptionInlineFormSet(BaseInlineFormSet):
@@ -318,7 +327,9 @@ class AdminUserForm(StyledFormMixin, forms.ModelForm):
             self.fields["password2"].required = True
 
     def clean_email(self):
-        email = self.cleaned_data["email"]
+        email = (self.cleaned_data.get("email") or "").strip().lower()
+        if not email:
+            return None
         qs = User.objects.filter(email__iexact=email)
         if self.instance.pk:
             qs = qs.exclude(pk=self.instance.pk)

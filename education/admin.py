@@ -75,7 +75,7 @@ class TestAdmin(admin.ModelAdmin):
 
 @admin.register(Question)
 class QuestionAdmin(admin.ModelAdmin):
-    list_display = ("test", "order", "points")
+    list_display = ("test", "order")
     inlines = [AnswerOptionInline]
 
 

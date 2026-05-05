@@ -42,7 +42,7 @@ class User(AbstractUser):
         TEACHER = ROLE_TEACHER, "Преподаватель"
         ADMINISTRATOR = ROLE_ADMINISTRATOR, "Администратор"
 
-    email = models.EmailField("Электронная почта", unique=True)
+    email = models.EmailField("Электронная почта", unique=True, blank=True, null=True)
     middle_name = models.CharField("Отчество", max_length=150, blank=True)
     phone = models.CharField("Телефон", max_length=32, blank=True)
     bio = models.TextField("О себе", blank=True)
@@ -61,7 +61,7 @@ class User(AbstractUser):
         verbose_name="Учебная группа",
     )
 
-    REQUIRED_FIELDS = ["email", "first_name", "last_name"]
+    REQUIRED_FIELDS = ["first_name", "last_name"]
     objects = UserManager()
 
     class Meta:
@@ -70,6 +70,10 @@ class User(AbstractUser):
         verbose_name_plural = "Пользователи"
 
     def save(self, *args, **kwargs):
+        if self.email:
+            self.email = self.email.strip().lower()
+        else:
+            self.email = None
         if self.role != self.Role.STUDENT:
             self.academic_group = None
         super().save(*args, **kwargs)
@@ -193,7 +197,7 @@ class Test(models.Model):
 
     @property
     def max_score(self):
-        return sum(question.points for question in self.questions.all())
+        return self.question_count
 
     def is_open_now(self):
         now = timezone.now()
@@ -230,7 +234,6 @@ class Question(models.Model):
     test = models.ForeignKey(Test, on_delete=models.CASCADE, related_name="questions", verbose_name="Тест")
     text = models.TextField("Текст вопроса")
     image = models.ImageField("Изображение", upload_to="questions/", blank=True, null=True)
-    points = models.PositiveIntegerField("Баллы", default=1)
     order = models.PositiveIntegerField("Порядок", default=1)
 
     class Meta:
@@ -318,7 +321,7 @@ class TestAttempt(models.Model):
         for answer in self.answers.select_related("selected_option", "question"):
             answer.is_correct = bool(answer.selected_option and answer.selected_option.is_correct)
             if answer.is_correct:
-                total_score += answer.question.points
+                total_score += 1
             answer.save(update_fields=["is_correct", "answered_at"])
         percent = (total_score / max_score * 100) if max_score else 0
         self.score = total_score
