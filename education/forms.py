@@ -174,7 +174,6 @@ class TeacherTestForm(StyledFormMixin, forms.ModelForm):
             "groups",
             "time_limit_minutes",
             "max_attempts",
-            "allow_retake",
             "is_published",
             "available_from",
             "available_to",
@@ -214,6 +213,15 @@ class TeacherTestForm(StyledFormMixin, forms.ModelForm):
         if available_from and available_to and available_to <= available_from:
             self.add_error("available_to", "Дата окончания должна быть позже даты начала.")
         return cleaned_data
+
+
+    def save(self, commit=True):
+        instance = super().save(commit=False)
+        instance.allow_retake = instance.max_attempts > 1
+        if commit:
+            instance.save()
+            self.save_m2m()
+        return instance
 
 
 class QuestionForm(StyledFormMixin, forms.ModelForm):
@@ -325,6 +333,9 @@ class AdminUserForm(StyledFormMixin, forms.ModelForm):
         if self.is_create:
             self.fields["password1"].required = True
             self.fields["password2"].required = True
+        else:
+            self.fields.pop("password1", None)
+            self.fields.pop("password2", None)
 
     def clean_email(self):
         email = (self.cleaned_data.get("email") or "").strip().lower()

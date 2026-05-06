@@ -30,7 +30,7 @@
                         <button class="nav-button" type="submit">Выйти</button>
                     </form>
                 {% else %}
-                    {% if request.resolver_match.view_name == 'education:register' %}
+                    {% if request.resolver_match.view_name == 'education:register' or request.resolver_match.view_name == 'password_reset' %}
                         <a href="{% url 'education:home' %}" class="nav-accent">Главная</a>
                     {% else %}
                         <a href="{% url 'education:register' %}" class="nav-accent">Регистрация</a>

@@ -107,7 +107,10 @@ class PortalSmokeTests(TestCase):
         response = self.client.get(reverse("password_reset"))
         self.assertEqual(response.status_code, 200)
         self.assertContains(response, "centered-panel")
+        self.assertContains(response, "Для восстановления доступа обратитесь к преподавателю.")
+        self.assertContains(response, '>Главная</a>', html=False)
         self.assertContains(response, reverse("login"))
+        self.assertNotContains(response, "Регистрация")
         self.assertNotContains(response, '>Р“Р»Р°РІРЅР°СЏ</a>', html=False)
         self.assertNotContains(response, 'name="email"')
         self.assertNotContains(response, "<form", html=False)
@@ -263,6 +266,7 @@ class PortalSmokeTests(TestCase):
         self.assertContains(response, "form-grid single-column")
         self.assertNotContains(response, "Опубликован")
         self.assertNotContains(response, 'name="is_published"')
+        self.assertNotContains(response, 'name="allow_retake"')
 
     def test_test_edit_page_keeps_publish_checkbox(self):
         self.client.login(username="teacher1", password="StrongPass123")
@@ -270,6 +274,14 @@ class PortalSmokeTests(TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertContains(response, "Опубликован")
         self.assertContains(response, 'name="is_published"')
+        self.assertNotContains(response, 'name="allow_retake"')
+
+    def test_test_preview_uses_only_attempt_count_for_repeat_rules(self):
+        self.client.login(username="teacher1", password="StrongPass123")
+        response = self.client.get(reverse("education:test_preview", args=[self.test.pk]))
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, str(self.test.max_attempts))
+        self.assertNotContains(response, "РџРѕРІС‚РѕСЂРЅРѕРµ РїСЂРѕС…РѕР¶РґРµРЅРёРµ")
 
     def test_question_create_page_does_not_show_order_fields(self):
         self.client.login(username="teacher1", password="StrongPass123")
@@ -277,6 +289,7 @@ class PortalSmokeTests(TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertNotContains(response, "Порядок")
         self.assertNotContains(response, "Баллы")
+        self.assertNotContains(response, 'name="options-0-DELETE"')
         self.assertNotContains(response, 'name="order"')
         self.assertNotContains(response, 'name="points"')
         self.assertNotContains(response, '-order"')
@@ -319,6 +332,7 @@ class PortalSmokeTests(TestCase):
             reverse("education:question_image_delete", args=[self.test.pk, self.question.pk]),
         )
         self.assertNotContains(response, "image-clear_id")
+        self.assertNotContains(response, 'name="options-0-DELETE"')
         self.assertContains(response, 'window.enforceSingleCorrectCheckbox(this)')
 
     def test_teacher_can_delete_question_image(self):
@@ -525,3 +539,20 @@ class PortalSmokeTests(TestCase):
         attempt.refresh_from_db()
         self.assertTrue(attempt.is_finished)
         self.assertEqual(attempt.score, 1)
+
+    def test_student_repeat_access_depends_only_on_attempt_count(self):
+        self.client.login(username="student1", password="StrongPass123")
+
+        first_start = self.client.get(reverse("education:start_test", args=[self.test.pk]))
+        self.assertEqual(first_start.status_code, 302)
+        first_attempt = TestAttempt.objects.get(student=self.student, test=self.test, attempt_number=1)
+        self.client.post(reverse("education:finish_attempt", args=[first_attempt.pk]))
+
+        second_start = self.client.get(reverse("education:start_test", args=[self.test.pk]))
+        self.assertEqual(second_start.status_code, 302)
+        second_attempt = TestAttempt.objects.get(student=self.student, test=self.test, attempt_number=2)
+        self.client.post(reverse("education:finish_attempt", args=[second_attempt.pk]))
+
+        third_start = self.client.get(reverse("education:start_test", args=[self.test.pk]))
+        self.assertRedirects(third_start, reverse("education:student_dashboard"))
+        self.assertEqual(TestAttempt.objects.filter(student=self.student, test=self.test).count(), 2)

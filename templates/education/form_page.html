@@ -18,7 +18,7 @@
         </div>
 
         <div class="panel">
-            <form method="post" enctype="multipart/form-data" class="stack-form{% if uniform_field_sizes %} uniform-field-sizes{% endif %}">
+            <form method="post" enctype="multipart/form-data" class="stack-form{% if uniform_field_sizes %} uniform-field-sizes{% endif %}{% if formset %} question-editor-form{% endif %}">
                 {% csrf_token %}
                 {% for hidden in form.hidden_fields %}
                     {{ hidden }}
@@ -88,6 +88,7 @@
                                         {{ hidden }}
                                     {% endfor %}
                                     {% for field in subform.visible_fields %}
+                                        {% if field.name != "DELETE" %}
                                         <div class="form-field {% if field.field.widget.input_type == 'checkbox' %}is-checkbox{% endif %}">
                                             {% if field.field.widget.input_type == 'checkbox' %}
                                                 <label class="checkbox-line">
@@ -102,6 +103,7 @@
                                                 <p class="field-error">{{ error }}</p>
                                             {% endfor %}
                                         </div>
+                                        {% endif %}
                                     {% endfor %}
                                 </div>
                             {% endfor %}

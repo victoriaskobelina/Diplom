@@ -191,6 +191,10 @@ class Test(models.Model):
         if self.max_attempts < 1:
             raise ValidationError("Количество попыток должно быть не меньше 1.")
 
+    def save(self, *args, **kwargs):
+        self.allow_retake = self.max_attempts > 1
+        super().save(*args, **kwargs)
+
     @property
     def question_count(self):
         return self.questions.count()
@@ -221,10 +225,7 @@ class Test(models.Model):
                 return False
             if not self.groups.filter(pk=student.academic_group_id).exists():
                 return False
-        completed_attempts = self.completed_attempts_for(student)
-        if not self.allow_retake and completed_attempts >= 1:
-            return False
-        return completed_attempts < self.max_attempts
+        return self.completed_attempts_for(student) < self.max_attempts
 
     def __str__(self):
         return self.title
