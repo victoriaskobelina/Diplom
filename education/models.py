@@ -227,6 +227,11 @@ class Test(models.Model):
                 return False
         return self.completed_attempts_for(student) < self.max_attempts
 
+    def normalize_question_order(self):
+        for expected_order, question in enumerate(self.questions.order_by("order", "id"), start=1):
+            if question.order != expected_order:
+                self.questions.filter(pk=question.pk).update(order=expected_order)
+
     def __str__(self):
         return self.title
 

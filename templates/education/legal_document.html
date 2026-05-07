@@ -1,0 +1,36 @@
+{% extends "base.html" %}
+
+{% block title %}{{ title }} | БТЖТиС{% endblock %}
+
+{% block content %}
+<section class="section">
+    <div class="container narrow">
+        <header class="page-head page-head-inline">
+            <div>
+                <h1>{{ title }}</h1>
+                {% if subtitle %}<p>{{ subtitle }}</p>{% endif %}
+            </div>
+            {% if back_url %}
+                <div class="head-actions">
+                    <a class="btn btn-secondary" href="{{ back_url }}">{{ back_label|default:"Назад" }}</a>
+                </div>
+            {% endif %}
+        </header>
+
+        <div class="panel legal-document">
+            {% for section in sections %}
+                <section class="legal-section{% if not forloop.first %} panel-top-space{% endif %}">
+                    <div class="section-head">
+                        <h2>{{ section.title }}</h2>
+                    </div>
+                    <div class="legal-content">
+                        {% for paragraph in section.paragraphs %}
+                            <p>{{ paragraph }}</p>
+                        {% endfor %}
+                    </div>
+                </section>
+            {% endfor %}
+        </div>
+    </div>
+</section>
+{% endblock %}

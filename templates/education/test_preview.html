@@ -35,7 +35,7 @@
             </div>
             <form method="post" action="{% url 'education:test_delete' test.pk %}" class="inline-form danger-zone">
                 {% csrf_token %}
-                <button type="submit" class="btn btn-danger">Удалить тест</button>
+                <button type="submit" class="btn btn-danger" data-confirm-message="Удалить тест?">Удалить тест</button>
             </form>
         </section>
 
@@ -65,7 +65,7 @@
                             <a class="btn btn-secondary btn-small" href="{% url 'education:question_update' test.pk question.pk %}">Изменить</a>
                             <form method="post" action="{% url 'education:question_delete' test.pk question.pk %}">
                                 {% csrf_token %}
-                                <button type="submit" class="btn btn-danger btn-small">Удалить</button>
+                                <button type="submit" class="btn btn-danger btn-small" data-confirm-message="Удалить вопрос?">Удалить</button>
                             </form>
                         </div>
                     </article>

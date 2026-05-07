@@ -1,13 +1,14 @@
 {% extends "base.html" %}
 
 {% block title %}Главная | БТЖТиС{% endblock %}
+{% block meta_description %}Главная страница цифровой образовательной среды БТЖТиС с быстрым входом в систему, регистрацией и доступом к функциям студентов, преподавателей и администрации.{% endblock %}
 
 {% block content %}
-<section class="hero">
+<section class="hero" aria-labelledby="hero-title">
     <div class="container hero-grid">
-        <div>
+        <header class="hero-copy">
             <span class="eyebrow">Цифровая образовательная среда</span>
-            <h1>Контроль знаний и аналитика успеваемости БТЖТиС в одном веб-приложении</h1>
+            <h1 id="hero-title">Контроль знаний и аналитика успеваемости БТЖТиС в одном веб-приложении</h1>
             <p class="hero-text">
                 Платформа объединяет тестирование студентов, инструменты преподавателя и административный контроль.
                 Система работает в браузере, сохраняет историю результатов и делает образовательный процесс прозрачным.
@@ -26,14 +27,15 @@
             <div class="hero-note">
                 <span>Доступ для студентов, преподавателей и администрации</span>
             </div>
-        </div>
+        </header>
+
         {% if user.is_authenticated %}
-            <div class="hero-panel">
+            <aside class="hero-panel" aria-labelledby="system-entry-title">
                 <div class="section-head">
-                    <h2>Точка входа в систему</h2>
+                    <h2 id="system-entry-title">Точка входа в систему</h2>
                     <p>
-                        После авторизации вы переходите в личный кабинет, где доступны только ваши
-                        инструменты: тестирование, аналитика, управление учебным контентом и администрирование.
+                        После авторизации вы переходите в личный кабинет, где доступны только ваши инструменты:
+                        тестирование, аналитика, управление учебным контентом и администрирование.
                     </p>
                 </div>
                 <div class="quick-links">
@@ -44,11 +46,11 @@
                     {% endif %}
                     <a class="quick-link" href="{% url 'education:profile_edit' %}">Настроить профиль</a>
                 </div>
-            </div>
+            </aside>
         {% else %}
-            <div class="hero-panel auth-panel" id="auth">
+            <aside class="hero-panel auth-panel" id="auth" aria-labelledby="auth-title">
                 <div class="section-head">
-                    <h2>Вход в систему</h2>
+                    <h2 id="auth-title">Вход в систему</h2>
                     <p>Авторизуйтесь здесь же, на главной странице.</p>
                 </div>
                 <form method="post" class="stack-form">
@@ -79,9 +81,8 @@
                         <a class="btn btn-secondary" href="{% url 'password_reset' %}">Забыли пароль?</a>
                     </div>
                 </form>
-            </div>
+            </aside>
         {% endif %}
     </div>
 </section>
-
 {% endblock %}

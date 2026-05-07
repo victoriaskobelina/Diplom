@@ -4,6 +4,8 @@ from django import forms
 from django.contrib.auth.forms import AuthenticationForm, UserCreationForm
 from django.core.exceptions import ValidationError
 from django.forms import BaseInlineFormSet, inlineformset_factory
+from django.urls import reverse
+from django.utils.html import format_html
 
 from .models import (
     AcademicGroup,
@@ -46,6 +48,14 @@ class LoginForm(StyledFormMixin, AuthenticationForm):
 
 
 class SignUpForm(StyledFormMixin, UserCreationForm):
+    privacy_consent = forms.BooleanField(
+        required=True,
+        label="Я принимаю условия Политики конфиденциальности и даю согласие на обработку персональных данных",
+        error_messages={
+            "required": "Необходимо принять условия Политики конфиденциальности и дать согласие на обработку персональных данных.",
+        },
+    )
+
     class Meta(UserCreationForm.Meta):
         model = User
         fields = (
@@ -64,6 +74,11 @@ class SignUpForm(StyledFormMixin, UserCreationForm):
         self.fields["username"].help_text = ""
         self.fields["email"].required = False
         self.fields["email"].help_text = ""
+        self.fields["privacy_consent"].label = format_html(
+            'Я принимаю условия <a href="{}" target="_blank" rel="noopener noreferrer">Политики конфиденциальности</a> и даю согласие на <a href="{}" target="_blank" rel="noopener noreferrer">обработку персональных данных</a>',
+            reverse("education:privacy_policy"),
+            reverse("education:personal_data_consent"),
+        )
         self.fields["email"].widget.attrs.update(
             {
                 "data-mask": "email",
@@ -95,6 +110,20 @@ class SignUpForm(StyledFormMixin, UserCreationForm):
                     "autocomplete": autocomplete,
                 }
             )
+        self.order_fields(
+            [
+                "username",
+                "email",
+                "last_name",
+                "first_name",
+                "middle_name",
+                "phone",
+                "academic_group",
+                "password1",
+                "password2",
+                "privacy_consent",
+            ]
+        )
 
     def clean_email(self):
         email = (self.cleaned_data.get("email") or "").strip().lower()
@@ -245,13 +274,25 @@ class AnswerOptionForm(StyledFormMixin, forms.ModelForm):
         self.fields["is_correct"].widget.attrs["onclick"] = "window.enforceSingleCorrectCheckbox(this)"
 
 
+MAX_ANSWER_OPTIONS = 6
+DEFAULT_ANSWER_OPTION_EXTRA = 4
+
+
 class BaseAnswerOptionInlineFormSet(BaseInlineFormSet):
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        if self.instance.pk:
+            remaining_slots = max(MAX_ANSWER_OPTIONS - self.initial_form_count(), 0)
+            self.extra = min(DEFAULT_ANSWER_OPTION_EXTRA, remaining_slots)
+
     def clean(self):
         super().clean()
         active_forms = [
             form for form in self.forms
             if form.cleaned_data and not form.cleaned_data.get("DELETE", False)
         ]
+        if len(active_forms) > MAX_ANSWER_OPTIONS:
+            raise ValidationError("Для вопроса можно указать не более шести вариантов ответа.")
         if len(active_forms) < 2:
             raise ValidationError("Для вопроса требуется минимум два варианта ответа.")
         correct_count = sum(1 for form in active_forms if form.cleaned_data.get("is_correct"))
@@ -290,9 +331,11 @@ AnswerOptionFormSet = inlineformset_factory(
     form=AnswerOptionForm,
     formset=BaseAnswerOptionInlineFormSet,
     fields=("text", "is_correct"),
-    extra=4,
+    extra=DEFAULT_ANSWER_OPTION_EXTRA,
     min_num=2,
+    max_num=MAX_ANSWER_OPTIONS,
     validate_min=True,
+    validate_max=True,
     can_delete=True,
 )
 

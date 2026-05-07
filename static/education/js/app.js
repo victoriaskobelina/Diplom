@@ -226,10 +226,134 @@ function initSingleCorrectCheckboxes() {
     });
 }
 
+function initConfirmationModal() {
+    const modal = document.querySelector("[data-confirm-modal]");
+    const messageNode = modal?.querySelector("[data-confirm-modal-message]");
+    const approveButton = modal?.querySelector("[data-confirm-approve]");
+    const cancelButtons = modal?.querySelectorAll("[data-confirm-cancel]");
+    const confirmationTriggers = document.querySelectorAll("[data-confirm-message]");
+    if (!modal || !messageNode || !approveButton || !cancelButtons?.length || !confirmationTriggers.length) {
+        return;
+    }
+
+    let pendingAction = null;
+    let previouslyFocusedElement = null;
+
+    const focusableSelector = [
+        "button:not([disabled])",
+        "[href]",
+        "input:not([disabled])",
+        "select:not([disabled])",
+        "textarea:not([disabled])",
+        '[tabindex]:not([tabindex="-1"])',
+    ].join(", ");
+
+    const getFocusableElements = () =>
+        Array.from(modal.querySelectorAll(focusableSelector)).filter((element) => !element.hidden);
+
+    const closeModal = ({ restoreFocus = true } = {}) => {
+        modal.hidden = true;
+        document.body.classList.remove("confirm-modal-open");
+        messageNode.textContent = "";
+        pendingAction = null;
+
+        if (restoreFocus && previouslyFocusedElement && typeof previouslyFocusedElement.focus === "function") {
+            previouslyFocusedElement.focus();
+        }
+    };
+
+    const openModal = (message, action) => {
+        pendingAction = action;
+        previouslyFocusedElement = document.activeElement;
+        messageNode.textContent = message;
+        modal.hidden = false;
+        document.body.classList.add("confirm-modal-open");
+        approveButton.focus();
+    };
+
+    approveButton.addEventListener("click", () => {
+        if (!pendingAction) {
+            closeModal();
+            return;
+        }
+
+        const action = pendingAction;
+        closeModal({ restoreFocus: false });
+
+        if (action.type === "submitter" && action.submitter?.form) {
+            action.submitter.form.requestSubmit(action.submitter);
+            return;
+        }
+
+        if (action.type === "link" && action.link?.href) {
+            window.location.assign(action.link.href);
+        }
+    });
+
+    cancelButtons.forEach((button) => {
+        button.addEventListener("click", () => {
+            closeModal();
+        });
+    });
+
+    document.addEventListener("keydown", (event) => {
+        if (modal.hidden) {
+            return;
+        }
+
+        if (event.key === "Escape") {
+            event.preventDefault();
+            closeModal();
+            return;
+        }
+
+        if (event.key !== "Tab") {
+            return;
+        }
+
+        const focusableElements = getFocusableElements();
+        if (!focusableElements.length) {
+            return;
+        }
+
+        const firstElement = focusableElements[0];
+        const lastElement = focusableElements[focusableElements.length - 1];
+
+        if (event.shiftKey && document.activeElement === firstElement) {
+            event.preventDefault();
+            lastElement.focus();
+        } else if (!event.shiftKey && document.activeElement === lastElement) {
+            event.preventDefault();
+            firstElement.focus();
+        }
+    });
+
+    confirmationTriggers.forEach((element) => {
+        element.addEventListener("click", (event) => {
+            const message = element.dataset.confirmMessage;
+            if (!message) {
+                return;
+            }
+
+            if (element.tagName === "A") {
+                event.preventDefault();
+                openModal(message, { type: "link", link: element });
+                return;
+            }
+
+            if (element.form) {
+                event.preventDefault();
+                openModal(message, { type: "submitter", submitter: element });
+            }
+        });
+    });
+}
+
 document.addEventListener("DOMContentLoaded", () => {
     initRoleDependentFields();
     initInputMasks();
     initTestAutosave();
     initTestTimer();
     initSingleCorrectCheckboxes();
+    initConfirmationModal();
 });

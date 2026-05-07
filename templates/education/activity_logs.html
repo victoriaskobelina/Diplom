@@ -13,7 +13,7 @@
             <div class="head-actions">
                 <form method="post" action="{% url 'education:activity_logs_clear' %}" class="inline-form">
                     {% csrf_token %}
-                    <button type="submit" class="btn btn-danger" onclick="return confirm('Очистить весь журнал действий?');">
+                <button type="submit" class="btn btn-danger" data-confirm-message="Очистить весь журнал действий?">
                         Очистить журнал
                     </button>
                 </form>

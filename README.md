@@ -47,9 +47,3 @@ python manage.py runserver
 ## База данных
 
 Проект настроен на работу с MySQL через `PyMySQL`. Если переменные `MYSQL_DB`, `MYSQL_USER` и `MYSQL_PASSWORD` не заданы, приложение автоматически использует SQLite как локальный fallback для быстрого запуска и проверки интерфейса.
-
-## Тесты
-
-```bash
-python manage.py test
-```

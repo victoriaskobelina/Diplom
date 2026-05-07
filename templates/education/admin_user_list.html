@@ -72,7 +72,7 @@
                                     {% if item != request.user %}
                                         <form method="post" action="{% url 'education:admin_user_delete' item.pk %}" class="inline-form">
                                             {% csrf_token %}
-                                            <button type="submit" class="btn btn-danger btn-small" onclick="return confirm('Удалить пользователя?');">
+                                    <button type="submit" class="btn btn-danger btn-small" data-confirm-message="Удалить пользователя?">
                                                 Удалить
                                             </button>
                                         </form>

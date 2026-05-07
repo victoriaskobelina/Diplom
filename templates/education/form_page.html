@@ -5,7 +5,7 @@
 {% block content %}
 <section class="section">
     <div class="container narrow">
-        <div class="page-head{% if show_password_change %} page-head-inline{% endif %}">
+        <header class="page-head{% if show_password_change %} page-head-inline{% endif %}">
             <div>
                 <h1>{{ title }}</h1>
                 {% if subtitle %}<p>{{ subtitle }}</p>{% endif %}
@@ -15,7 +15,7 @@
                     <a class="btn btn-secondary" href="{% url 'password_change' %}">Сменить пароль</a>
                 </div>
             {% endif %}
-        </div>
+        </header>
 
         <div class="panel">
             <form method="post" enctype="multipart/form-data" class="stack-form{% if uniform_field_sizes %} uniform-field-sizes{% endif %}{% if formset %} question-editor-form{% endif %}">
@@ -51,7 +51,7 @@
                                             class="btn btn-danger btn-small"
                                             formaction="{% url file_delete_url file_delete_kwargs.test_pk file_delete_kwargs.question_pk %}"
                                             formnovalidate
-                                            onclick="return confirm('Удалить изображение вопроса?');"
+                                            data-confirm-message="Удалить изображение вопроса?"
                                         >
                                             {{ file_delete_label }}
                                         </button>

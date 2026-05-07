@@ -18,70 +18,70 @@
         </div>
 
         <div class="stats-strip">
-            <article class="mini-stat"><span>Попыток</span><strong>{{ summary.attempts }}</strong></article>
+            <article class="mini-stat"><span>Количество прохождений</span><strong>{{ summary.attempts }}</strong></article>
             <article class="mini-stat"><span>Средний балл</span><strong>{{ summary.average_score }}</strong></article>
             <article class="mini-stat"><span>Автор</span><strong>{{ test.author.full_name }}</strong></article>
         </div>
 
         <section class="panel panel-top-space">
-                <div class="section-head">
-                    <h2>Статистика по вопросам</h2>
-                    <p>Процент правильных ответов помогает выявить сложные темы и проблемные блоки.</p>
-                </div>
-                <div class="table-wrap">
-                    <table class="data-table">
-                        <thead>
+            <div class="section-head">
+                <h2>Статистика по вопросам</h2>
+                <p>Процент правильных ответов помогает выявить сложные темы и проблемные блоки.</p>
+            </div>
+            <div class="table-wrap">
+                <table class="data-table">
+                    <thead>
+                        <tr>
+                            <th>Вопрос</th>
+                            <th>Ответов</th>
+                            <th>Доля верных ответов</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for item in question_stats %}
                             <tr>
-                                <th>Вопрос</th>
-                                <th>Ответов</th>
-                                <th>Доля верных ответов</th>
+                                <td>{{ item.question.text|truncatechars:90 }}</td>
+                                <td>{{ item.answers_count }}</td>
+                                <td>{{ item.correct_rate }}%</td>
                             </tr>
-                        </thead>
-                        <tbody>
-                            {% for item in question_stats %}
-                                <tr>
-                                    <td>{{ item.question.text|truncatechars:90 }}</td>
-                                    <td>{{ item.answers_count }}</td>
-                                    <td>{{ item.correct_rate }}%</td>
-                                </tr>
-                            {% empty %}
-                                <tr>
-                                    <td colspan="3">Статистика пока недоступна.</td>
-                                </tr>
-                            {% endfor %}
-                        </tbody>
-                    </table>
-                </div>
-            </section>
+                        {% empty %}
+                            <tr>
+                                <td colspan="3">Статистика пока недоступна.</td>
+                            </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </section>
 
         <section class="panel panel-top-space">
-                <div class="section-head">
-                    <h2>Попытки студентов</h2>
-                    <p>Разверните карточку, чтобы посмотреть ответы конкретного студента.</p>
-                </div>
-                <div class="details-list">
-                    {% for attempt in attempts %}
-                        <details class="details-card">
-                            <summary>
-                                <span>{{ attempt.student.full_name }}</span>
-                                <span>{{ attempt.score }}/{{ attempt.max_score }} • оценка {{ attempt.grade }}</span>
-                            </summary>
-                            <div class="details-content">
-                                {% for answer in attempt.answers.all %}
-                                    <div class="answer-row">
-                                        <strong>{{ answer.question.order }}.</strong>
-                                        <span>{{ answer.question.text }}</span>
-                                        <span class="{% if answer.is_correct %}success-text{% else %}danger-text{% endif %}">
-                                            {{ answer.selected_option|default:"Ответ не выбран" }}
-                                        </span>
-                                    </div>
-                                {% endfor %}
-                            </div>
-                        </details>
-                    {% empty %}
-                        <p class="muted">Завершённых попыток пока нет.</p>
-                    {% endfor %}
-                </div>
+            <div class="section-head">
+                <h2>Попытки студентов</h2>
+                <p>Разверните карточку, чтобы посмотреть ответы конкретного студента.</p>
+            </div>
+            <div class="details-list">
+                {% for attempt in attempts %}
+                    <details class="details-card">
+                        <summary>
+                            <span>{{ attempt.student.full_name }}</span>
+                            <span>{{ attempt.score }}/{{ attempt.max_score }} • оценка {{ attempt.grade }}</span>
+                        </summary>
+                        <div class="details-content">
+                            {% for answer in attempt.answers.all %}
+                                <div class="answer-row">
+                                    <strong>{{ answer.question.order }}.</strong>
+                                    <span>{{ answer.question.text }}</span>
+                                    <span class="{% if answer.is_correct %}success-text{% else %}danger-text{% endif %}">
+                                        {{ answer.selected_option|default:"Ответ не выбран" }}
+                                    </span>
+                                </div>
+                            {% endfor %}
+                        </div>
+                    </details>
+                {% empty %}
+                    <p class="muted">Завершённых попыток пока нет.</p>
+                {% endfor %}
+            </div>
         </section>
     </div>
 </section>
