@@ -24,6 +24,10 @@ html {
     box-sizing: border-box;
 }
 
+:where(*, *::before, *::after) {
+    min-width: 0;
+}
+
 body {
     margin: 0;
     min-height: 100svh;
@@ -56,6 +60,14 @@ img {
 
 :where(h1, h2, h3, .brand-text, .table-muted, .quick-link) {
     overflow-wrap: anywhere;
+}
+
+:where(.btn, .nav-button, .main-nav a, .quick-link, .pill) {
+    max-width: 100%;
+    min-height: 44px;
+    line-height: 1.25;
+    text-align: center;
+    white-space: normal;
 }
 
 .container {
@@ -159,6 +171,15 @@ img {
     border-radius: 999px;
     font-weight: 600;
     text-align: center;
+}
+
+.head-actions,
+.hero-actions,
+.test-actions,
+.filters-actions,
+.form-actions,
+.actions-cell {
+    flex-wrap: wrap;
 }
 
 .nav-accent,
@@ -286,19 +307,18 @@ img {
     text-align: center;
 }
 
+.stat-card span,
+.mini-stat span {
+    display: block;
+    overflow-wrap: normal;
+    text-wrap: balance;
+}
+
 .stat-card strong,
 .mini-stat strong {
     display: block;
     margin-top: 8px;
     font-size: 1.6rem;
-    text-align: center;
-}
-
-.stats-strip-centered .mini-stat {
-    text-align: center;
-}
-
-.stats-strip-centered .mini-stat strong {
     text-align: center;
 }
 
@@ -351,6 +371,7 @@ img {
     border: 1px solid transparent;
     font-weight: 700;
     cursor: pointer;
+    overflow-wrap: anywhere;
     transition: transform 0.2s ease, box-shadow 0.2s ease, background 0.2s ease;
 }
 
@@ -415,10 +436,12 @@ img {
 
 .table-wrap {
     overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
 }
 
 .data-table {
     width: 100%;
+    min-width: 680px;
     border-collapse: collapse;
 }
 
@@ -428,6 +451,7 @@ img {
     border-bottom: 1px solid rgba(220, 207, 185, 0.75);
     text-align: left;
     vertical-align: top;
+    overflow-wrap: anywhere;
 }
 
 .data-table th {

@@ -1,4 +1,4 @@
-﻿from django.contrib import messages
+from django.contrib import messages
 from django.contrib.auth import login
 from django.contrib.auth.decorators import login_required
 from django.db.models import Avg, Count, Max, Q
@@ -302,11 +302,9 @@ def teacher_dashboard(request):
         .all()
     )
     assigned_disciplines = request.user.disciplines_taught.prefetch_related("groups")
-    assigned_groups = AcademicGroup.objects.filter(disciplines__teachers=request.user).distinct()
     context = {
         "tests": tests,
         "assigned_disciplines": assigned_disciplines,
-        "assigned_groups": assigned_groups,
         "summary": {
             "tests_total": tests.count(),
             "published_total": tests.filter(is_published=True).count(),
