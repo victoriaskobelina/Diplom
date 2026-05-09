@@ -11,6 +11,7 @@
                 <p>{{ test.title }} • {{ test.discipline.name }}</p>
             </div>
             <div class="head-actions">
+                <a class="btn btn-primary" href="{% url 'education:test_results_export' %}">Выгрузить по группам</a>
                 {% if user.is_teacher %}
                     <a class="btn btn-secondary" href="{% url 'education:test_preview' test.pk %}">К тесту</a>
                 {% endif %}

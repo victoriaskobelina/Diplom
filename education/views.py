@@ -2,10 +2,16 @@
 from django.contrib.auth import login
 from django.contrib.auth.decorators import login_required
 from django.db.models import Avg, Count, Max, Q
-from django.http import HttpResponseForbidden, JsonResponse
+from io import BytesIO
+from urllib.parse import quote
+
+from django.http import HttpResponse, HttpResponseForbidden, JsonResponse
 from django.shortcuts import get_object_or_404, redirect, render
 from django.utils.http import url_has_allowed_host_and_scheme
 from django.views.decorators.http import require_POST
+from openpyxl import Workbook
+from openpyxl.styles import Alignment, Font, PatternFill
+from openpyxl.utils import get_column_letter
 
 from .forms import (
     AcademicGroupForm,
@@ -574,6 +580,153 @@ def report_detail(request, pk):
     return render(request, "education/report_detail.html", context)
 
 
+@role_required(User.Role.TEACHER, User.Role.ADMINISTRATOR)
+def test_results_export(request):
+    if request.user.is_teacher:
+        tests = request.user.created_tests.select_related("discipline").prefetch_related("groups")
+    else:
+        tests = Test.objects.select_related("discipline", "author").prefetch_related("groups")
+    tests = list(tests.order_by("title", "id"))
+    test_ids = [test.pk for test in tests]
+    test_group_ids = {
+        test.pk: {group.pk for group in test.groups.all()}
+        for test in tests
+    }
+    public_tests = [test for test in tests if not test_group_ids[test.pk]]
+
+    attempts = (
+        TestAttempt.objects.filter(test_id__in=test_ids, is_finished=True)
+        .select_related("student", "test")
+        .order_by("student_id", "test_id", "-score", "-completed_at", "-attempt_number")
+    )
+    best_attempts = {}
+    for attempt in attempts:
+        best_attempts.setdefault((attempt.student_id, attempt.test_id), attempt)
+
+    workbook = Workbook()
+    placeholder_sheet = workbook.active
+    placeholder_sheet.title = "_"
+    used_sheet_titles = set()
+    header_fill = PatternFill("solid", fgColor="124E78")
+    header_font = Font(bold=True, color="FFFFFF")
+
+    def make_sheet_title(title):
+        cleaned_title = "".join("_" if char in "[]:*?/\\" else char for char in title).strip() or "Группа"
+        base_title = cleaned_title[:31]
+        sheet_title = base_title
+        counter = 2
+        while sheet_title in used_sheet_titles:
+            suffix = f" {counter}"
+            sheet_title = f"{base_title[:31 - len(suffix)]}{suffix}"
+            counter += 1
+        used_sheet_titles.add(sheet_title)
+        return sheet_title
+
+    def add_results_sheet(title, sheet_tests, students):
+        worksheet = workbook.create_sheet(make_sheet_title(title))
+        worksheet.append(["Фамилия студента", *[test.title for test in sheet_tests]])
+
+        for student in students:
+            row = [student.last_name or student.username]
+            for test in sheet_tests:
+                attempt = best_attempts.get((student.pk, test.pk))
+                row.append(attempt.score if attempt else None)
+            worksheet.append(row)
+
+        for cell in worksheet[1]:
+            cell.fill = header_fill
+            cell.font = header_font
+            cell.alignment = Alignment(horizontal="center", vertical="center", wrap_text=True)
+
+        for row in worksheet.iter_rows(min_row=2):
+            row[0].alignment = Alignment(horizontal="left", vertical="center")
+            for cell in row[1:]:
+                cell.alignment = Alignment(horizontal="center", vertical="center")
+
+        worksheet.column_dimensions["A"].width = 28
+        for index, test in enumerate(sheet_tests, start=2):
+            column = get_column_letter(index)
+            worksheet.column_dimensions[column].width = min(max(len(test.title) + 4, 18), 60)
+        worksheet.freeze_panes = "B2"
+
+    assigned_group_ids = {group_id for group_ids in test_group_ids.values() for group_id in group_ids}
+    attempt_group_ids = {
+        attempt.student.academic_group_id
+        for attempt in attempts
+        if attempt.student.academic_group_id
+    }
+    group_ids = assigned_group_ids | attempt_group_ids
+    groups = AcademicGroup.objects.all()
+    if public_tests:
+        groups = groups.filter(Q(pk__in=group_ids) | Q(students__role=User.Role.STUDENT, students__is_active=True))
+    else:
+        groups = groups.filter(pk__in=group_ids)
+    groups = groups.distinct().order_by("name")
+
+    for group in groups:
+        group_tests = [
+            test
+            for test in tests
+            if not test_group_ids[test.pk] or group.pk in test_group_ids[test.pk]
+        ]
+        students = User.objects.filter(
+            role=User.Role.STUDENT,
+            is_active=True,
+            academic_group=group,
+        ).order_by("last_name", "first_name", "middle_name", "username")
+        add_results_sheet(group.name, group_tests, students)
+
+    ungrouped_students = User.objects.filter(
+        role=User.Role.STUDENT,
+        is_active=True,
+        academic_group__isnull=True,
+    ).order_by("last_name", "first_name", "middle_name", "username")
+    ungrouped_attempt_test_ids = {
+        test_id
+        for (student_id, test_id), attempt in best_attempts.items()
+        if attempt.student.academic_group_id is None
+    }
+    ungrouped_tests = [
+        test
+        for test in tests
+        if test in public_tests or test.pk in ungrouped_attempt_test_ids
+    ]
+    if ungrouped_tests and ungrouped_students.exists():
+        add_results_sheet("Без группы", ungrouped_tests, ungrouped_students)
+
+    if len(workbook.worksheets) > 1:
+        workbook.remove(placeholder_sheet)
+    else:
+        placeholder_sheet.title = "Результаты"
+        placeholder_sheet.append(["Фамилия студента"])
+        for cell in placeholder_sheet[1]:
+            cell.fill = header_fill
+            cell.font = header_font
+            cell.alignment = Alignment(horizontal="center", vertical="center", wrap_text=True)
+        placeholder_sheet.column_dimensions["A"].width = 28
+
+    output = BytesIO()
+    workbook.save(output)
+    output.seek(0)
+
+    filename = "results_all_tests.xlsx"
+    quoted_filename = quote("Результаты всех тестов.xlsx")
+    response = HttpResponse(
+        output.getvalue(),
+        content_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+    )
+    response["Content-Disposition"] = (
+        f"attachment; filename=\"{filename}\"; filename*=UTF-8''{quoted_filename}"
+    )
+    log_activity(
+        request,
+        request.user,
+        ActivityLog.ActionType.ANALYTICS,
+        "Выгружены результаты всех тестов в Excel",
+    )
+    return response
+
+
 @role_required(User.Role.STUDENT)
 def start_test(request, pk):
     test = get_object_or_404(Test.objects.prefetch_related("questions"), pk=pk, is_published=True)
@@ -1048,11 +1201,16 @@ def activity_logs(request):
     filter_form = ActivityLogFilterForm(request.GET or None)
     if filter_form.is_valid():
         action_type = filter_form.cleaned_data.get("action_type")
-        user = filter_form.cleaned_data.get("user")
+        user_query = (filter_form.cleaned_data.get("user_query") or "").strip()
         if action_type:
             logs = logs.filter(action_type=action_type)
-        if user:
-            logs = logs.filter(user=user)
+        if user_query:
+            for term in user_query.split():
+                logs = logs.filter(
+                    Q(user__last_name__icontains=term)
+                    | Q(user__first_name__icontains=term)
+                    | Q(user__middle_name__icontains=term)
+                )
 
     return render(
         request,

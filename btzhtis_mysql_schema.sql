@@ -40,17 +40,17 @@ CREATE TABLE IF NOT EXISTS `auth_group` (
     UNIQUE KEY `auth_group_name_uniq` (`name`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
-CREATE TABLE IF NOT EXISTS `education_academicgroup` (
+CREATE TABLE IF NOT EXISTS `groups` (
     `id` BIGINT NOT NULL AUTO_INCREMENT,
     `name` VARCHAR(50) NOT NULL,
     `description` LONGTEXT NOT NULL,
     `curator_id` BIGINT NULL,
     PRIMARY KEY (`id`),
-    UNIQUE KEY `education_academicgroup_name_uniq` (`name`),
-    KEY `education_academicgroup_curator_id_idx` (`curator_id`)
+    UNIQUE KEY `groups_name_uniq` (`name`),
+    KEY `groups_curator_id_idx` (`curator_id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
-CREATE TABLE IF NOT EXISTS `education_user` (
+CREATE TABLE IF NOT EXISTS `users` (
     `id` BIGINT NOT NULL AUTO_INCREMENT,
     `password` VARCHAR(128) NOT NULL,
     `last_login` DATETIME(6) NULL,
@@ -68,19 +68,19 @@ CREATE TABLE IF NOT EXISTS `education_user` (
     `role` VARCHAR(20) NOT NULL DEFAULT 'student',
     `academic_group_id` BIGINT NULL,
     PRIMARY KEY (`id`),
-    UNIQUE KEY `education_user_username_uniq` (`username`),
-    UNIQUE KEY `education_user_email_uniq` (`email`),
-    KEY `education_user_academic_group_id_idx` (`academic_group_id`),
-    CONSTRAINT `education_user_academic_group_id_fk`
-        FOREIGN KEY (`academic_group_id`) REFERENCES `education_academicgroup` (`id`)
+    UNIQUE KEY `users_username_uniq` (`username`),
+    UNIQUE KEY `users_email_uniq` (`email`),
+    KEY `users_academic_group_id_idx` (`academic_group_id`),
+    CONSTRAINT `users_academic_group_id_fk`
+        FOREIGN KEY (`academic_group_id`) REFERENCES `groups` (`id`)
         ON DELETE SET NULL,
-    CONSTRAINT `education_user_role_chk`
+    CONSTRAINT `users_role_chk`
         CHECK (`role` IN ('student', 'teacher', 'administrator'))
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
-ALTER TABLE `education_academicgroup`
-    ADD CONSTRAINT `education_academicgroup_curator_id_fk`
-        FOREIGN KEY (`curator_id`) REFERENCES `education_user` (`id`)
+ALTER TABLE `groups`
+    ADD CONSTRAINT `groups_curator_id_fk`
+        FOREIGN KEY (`curator_id`) REFERENCES `users` (`id`)
         ON DELETE SET NULL;
 
 CREATE TABLE IF NOT EXISTS `auth_group_permissions` (
@@ -98,76 +98,76 @@ CREATE TABLE IF NOT EXISTS `auth_group_permissions` (
         ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
-CREATE TABLE IF NOT EXISTS `education_user_groups` (
+CREATE TABLE IF NOT EXISTS `users_groups` (
     `id` BIGINT NOT NULL AUTO_INCREMENT,
     `user_id` BIGINT NOT NULL,
     `group_id` BIGINT NOT NULL,
     PRIMARY KEY (`id`),
-    UNIQUE KEY `education_user_groups_user_group_uniq` (`user_id`, `group_id`),
-    KEY `education_user_groups_group_id_idx` (`group_id`),
-    CONSTRAINT `education_user_groups_user_id_fk`
-        FOREIGN KEY (`user_id`) REFERENCES `education_user` (`id`)
+    UNIQUE KEY `users_groups_user_group_uniq` (`user_id`, `group_id`),
+    KEY `users_groups_group_id_idx` (`group_id`),
+    CONSTRAINT `users_groups_user_id_fk`
+        FOREIGN KEY (`user_id`) REFERENCES `users` (`id`)
         ON DELETE CASCADE,
-    CONSTRAINT `education_user_groups_group_id_fk`
+    CONSTRAINT `users_groups_group_id_fk`
         FOREIGN KEY (`group_id`) REFERENCES `auth_group` (`id`)
         ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
-CREATE TABLE IF NOT EXISTS `education_user_user_permissions` (
+CREATE TABLE IF NOT EXISTS `users_user_permissions` (
     `id` BIGINT NOT NULL AUTO_INCREMENT,
     `user_id` BIGINT NOT NULL,
     `permission_id` BIGINT NOT NULL,
     PRIMARY KEY (`id`),
-    UNIQUE KEY `education_user_permissions_user_permission_uniq` (`user_id`, `permission_id`),
-    KEY `education_user_user_permissions_permission_id_idx` (`permission_id`),
-    CONSTRAINT `education_user_user_permissions_user_id_fk`
-        FOREIGN KEY (`user_id`) REFERENCES `education_user` (`id`)
+    UNIQUE KEY `users_permissions_user_permission_uniq` (`user_id`, `permission_id`),
+    KEY `users_user_permissions_permission_id_idx` (`permission_id`),
+    CONSTRAINT `users_user_permissions_user_id_fk`
+        FOREIGN KEY (`user_id`) REFERENCES `users` (`id`)
         ON DELETE CASCADE,
-    CONSTRAINT `education_user_user_permissions_permission_id_fk`
+    CONSTRAINT `users_user_permissions_permission_id_fk`
         FOREIGN KEY (`permission_id`) REFERENCES `auth_permission` (`id`)
         ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
-CREATE TABLE IF NOT EXISTS `education_discipline` (
+CREATE TABLE IF NOT EXISTS `disciplines` (
     `id` BIGINT NOT NULL AUTO_INCREMENT,
     `name` VARCHAR(120) NOT NULL,
     `code` VARCHAR(20) NOT NULL DEFAULT '',
     `description` LONGTEXT NOT NULL,
     PRIMARY KEY (`id`),
-    UNIQUE KEY `education_discipline_name_uniq` (`name`)
+    UNIQUE KEY `disciplines_name_uniq` (`name`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
-CREATE TABLE IF NOT EXISTS `education_discipline_groups` (
+CREATE TABLE IF NOT EXISTS `disciplines_groups` (
     `id` BIGINT NOT NULL AUTO_INCREMENT,
     `discipline_id` BIGINT NOT NULL,
     `academicgroup_id` BIGINT NOT NULL,
     PRIMARY KEY (`id`),
-    UNIQUE KEY `education_discipline_groups_uniq` (`discipline_id`, `academicgroup_id`),
-    KEY `education_discipline_groups_academicgroup_id_idx` (`academicgroup_id`),
-    CONSTRAINT `education_discipline_groups_discipline_id_fk`
-        FOREIGN KEY (`discipline_id`) REFERENCES `education_discipline` (`id`)
+    UNIQUE KEY `disciplines_groups_uniq` (`discipline_id`, `academicgroup_id`),
+    KEY `disciplines_groups_academicgroup_id_idx` (`academicgroup_id`),
+    CONSTRAINT `disciplines_groups_discipline_id_fk`
+        FOREIGN KEY (`discipline_id`) REFERENCES `disciplines` (`id`)
         ON DELETE CASCADE,
-    CONSTRAINT `education_discipline_groups_academicgroup_id_fk`
-        FOREIGN KEY (`academicgroup_id`) REFERENCES `education_academicgroup` (`id`)
+    CONSTRAINT `disciplines_groups_academicgroup_id_fk`
+        FOREIGN KEY (`academicgroup_id`) REFERENCES `groups` (`id`)
         ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
-CREATE TABLE IF NOT EXISTS `education_discipline_teachers` (
+CREATE TABLE IF NOT EXISTS `disciplines_teachers` (
     `id` BIGINT NOT NULL AUTO_INCREMENT,
     `discipline_id` BIGINT NOT NULL,
     `user_id` BIGINT NOT NULL,
     PRIMARY KEY (`id`),
-    UNIQUE KEY `education_discipline_teachers_uniq` (`discipline_id`, `user_id`),
-    KEY `education_discipline_teachers_user_id_idx` (`user_id`),
-    CONSTRAINT `education_discipline_teachers_discipline_id_fk`
-        FOREIGN KEY (`discipline_id`) REFERENCES `education_discipline` (`id`)
+    UNIQUE KEY `disciplines_teachers_uniq` (`discipline_id`, `user_id`),
+    KEY `disciplines_teachers_user_id_idx` (`user_id`),
+    CONSTRAINT `disciplines_teachers_discipline_id_fk`
+        FOREIGN KEY (`discipline_id`) REFERENCES `disciplines` (`id`)
         ON DELETE CASCADE,
-    CONSTRAINT `education_discipline_teachers_user_id_fk`
-        FOREIGN KEY (`user_id`) REFERENCES `education_user` (`id`)
+    CONSTRAINT `disciplines_teachers_user_id_fk`
+        FOREIGN KEY (`user_id`) REFERENCES `users` (`id`)
         ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
-CREATE TABLE IF NOT EXISTS `education_test` (
+CREATE TABLE IF NOT EXISTS `tests` (
     `id` BIGINT NOT NULL AUTO_INCREMENT,
     `title` VARCHAR(200) NOT NULL,
     `description` LONGTEXT NOT NULL,
@@ -182,60 +182,60 @@ CREATE TABLE IF NOT EXISTS `education_test` (
     `created_at` DATETIME(6) NOT NULL,
     `updated_at` DATETIME(6) NOT NULL,
     PRIMARY KEY (`id`),
-    KEY `education_test_discipline_id_idx` (`discipline_id`),
-    KEY `education_test_author_id_idx` (`author_id`),
-    CONSTRAINT `education_test_discipline_id_fk`
-        FOREIGN KEY (`discipline_id`) REFERENCES `education_discipline` (`id`)
+    KEY `tests_discipline_id_idx` (`discipline_id`),
+    KEY `tests_author_id_idx` (`author_id`),
+    CONSTRAINT `tests_discipline_id_fk`
+        FOREIGN KEY (`discipline_id`) REFERENCES `disciplines` (`id`)
         ON DELETE CASCADE,
-    CONSTRAINT `education_test_author_id_fk`
-        FOREIGN KEY (`author_id`) REFERENCES `education_user` (`id`)
+    CONSTRAINT `tests_author_id_fk`
+        FOREIGN KEY (`author_id`) REFERENCES `users` (`id`)
         ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
-CREATE TABLE IF NOT EXISTS `education_test_groups` (
+CREATE TABLE IF NOT EXISTS `tests_groups` (
     `id` BIGINT NOT NULL AUTO_INCREMENT,
     `test_id` BIGINT NOT NULL,
     `academicgroup_id` BIGINT NOT NULL,
     PRIMARY KEY (`id`),
-    UNIQUE KEY `education_test_groups_uniq` (`test_id`, `academicgroup_id`),
-    KEY `education_test_groups_academicgroup_id_idx` (`academicgroup_id`),
-    CONSTRAINT `education_test_groups_test_id_fk`
-        FOREIGN KEY (`test_id`) REFERENCES `education_test` (`id`)
+    UNIQUE KEY `tests_groups_uniq` (`test_id`, `academicgroup_id`),
+    KEY `tests_groups_academicgroup_id_idx` (`academicgroup_id`),
+    CONSTRAINT `tests_groups_test_id_fk`
+        FOREIGN KEY (`test_id`) REFERENCES `tests` (`id`)
         ON DELETE CASCADE,
-    CONSTRAINT `education_test_groups_academicgroup_id_fk`
-        FOREIGN KEY (`academicgroup_id`) REFERENCES `education_academicgroup` (`id`)
+    CONSTRAINT `tests_groups_academicgroup_id_fk`
+        FOREIGN KEY (`academicgroup_id`) REFERENCES `groups` (`id`)
         ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
-CREATE TABLE IF NOT EXISTS `education_question` (
+CREATE TABLE IF NOT EXISTS `questions` (
     `id` BIGINT NOT NULL AUTO_INCREMENT,
     `test_id` BIGINT NOT NULL,
     `text` LONGTEXT NOT NULL,
     `image` VARCHAR(100) NULL,
     `order` INT UNSIGNED NOT NULL DEFAULT 1,
     PRIMARY KEY (`id`),
-    UNIQUE KEY `education_question_test_order_uniq` (`test_id`, `order`),
-    KEY `education_question_test_id_idx` (`test_id`),
-    CONSTRAINT `education_question_test_id_fk`
-        FOREIGN KEY (`test_id`) REFERENCES `education_test` (`id`)
+    UNIQUE KEY `questions_test_order_uniq` (`test_id`, `order`),
+    KEY `questions_test_id_idx` (`test_id`),
+    CONSTRAINT `questions_test_id_fk`
+        FOREIGN KEY (`test_id`) REFERENCES `tests` (`id`)
         ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
-CREATE TABLE IF NOT EXISTS `education_answeroption` (
+CREATE TABLE IF NOT EXISTS `answer_options` (
     `id` BIGINT NOT NULL AUTO_INCREMENT,
     `question_id` BIGINT NOT NULL,
     `text` VARCHAR(255) NOT NULL,
     `is_correct` TINYINT(1) NOT NULL DEFAULT 0,
     `order` INT UNSIGNED NOT NULL DEFAULT 1,
     PRIMARY KEY (`id`),
-    UNIQUE KEY `education_answeroption_question_order_uniq` (`question_id`, `order`),
-    KEY `education_answeroption_question_id_idx` (`question_id`),
-    CONSTRAINT `education_answeroption_question_id_fk`
-        FOREIGN KEY (`question_id`) REFERENCES `education_question` (`id`)
+    UNIQUE KEY `answer_options_question_order_uniq` (`question_id`, `order`),
+    KEY `answer_options_question_id_idx` (`question_id`),
+    CONSTRAINT `answer_options_question_id_fk`
+        FOREIGN KEY (`question_id`) REFERENCES `questions` (`id`)
         ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
-CREATE TABLE IF NOT EXISTS `education_testattempt` (
+CREATE TABLE IF NOT EXISTS `test_attempts` (
     `id` BIGINT NOT NULL AUTO_INCREMENT,
     `student_id` BIGINT NOT NULL,
     `test_id` BIGINT NOT NULL,
@@ -247,17 +247,17 @@ CREATE TABLE IF NOT EXISTS `education_testattempt` (
     `completed_at` DATETIME(6) NULL,
     `is_finished` TINYINT(1) NOT NULL DEFAULT 0,
     PRIMARY KEY (`id`),
-    UNIQUE KEY `education_testattempt_student_test_attempt_uniq` (`student_id`, `test_id`, `attempt_number`),
-    KEY `education_testattempt_test_id_idx` (`test_id`),
-    CONSTRAINT `education_testattempt_student_id_fk`
-        FOREIGN KEY (`student_id`) REFERENCES `education_user` (`id`)
+    UNIQUE KEY `test_attempts_student_test_attempt_uniq` (`student_id`, `test_id`, `attempt_number`),
+    KEY `test_attempts_test_id_idx` (`test_id`),
+    CONSTRAINT `test_attempts_student_id_fk`
+        FOREIGN KEY (`student_id`) REFERENCES `users` (`id`)
         ON DELETE CASCADE,
-    CONSTRAINT `education_testattempt_test_id_fk`
-        FOREIGN KEY (`test_id`) REFERENCES `education_test` (`id`)
+    CONSTRAINT `test_attempts_test_id_fk`
+        FOREIGN KEY (`test_id`) REFERENCES `tests` (`id`)
         ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
-CREATE TABLE IF NOT EXISTS `education_studentanswer` (
+CREATE TABLE IF NOT EXISTS `student_answers` (
     `id` BIGINT NOT NULL AUTO_INCREMENT,
     `attempt_id` BIGINT NOT NULL,
     `question_id` BIGINT NOT NULL,
@@ -265,21 +265,21 @@ CREATE TABLE IF NOT EXISTS `education_studentanswer` (
     `is_correct` TINYINT(1) NOT NULL DEFAULT 0,
     `answered_at` DATETIME(6) NOT NULL,
     PRIMARY KEY (`id`),
-    UNIQUE KEY `education_studentanswer_attempt_question_uniq` (`attempt_id`, `question_id`),
-    KEY `education_studentanswer_question_id_idx` (`question_id`),
-    KEY `education_studentanswer_selected_option_id_idx` (`selected_option_id`),
-    CONSTRAINT `education_studentanswer_attempt_id_fk`
-        FOREIGN KEY (`attempt_id`) REFERENCES `education_testattempt` (`id`)
+    UNIQUE KEY `student_answers_attempt_question_uniq` (`attempt_id`, `question_id`),
+    KEY `student_answers_question_id_idx` (`question_id`),
+    KEY `student_answers_selected_option_id_idx` (`selected_option_id`),
+    CONSTRAINT `student_answers_attempt_id_fk`
+        FOREIGN KEY (`attempt_id`) REFERENCES `test_attempts` (`id`)
         ON DELETE CASCADE,
-    CONSTRAINT `education_studentanswer_question_id_fk`
-        FOREIGN KEY (`question_id`) REFERENCES `education_question` (`id`)
+    CONSTRAINT `student_answers_question_id_fk`
+        FOREIGN KEY (`question_id`) REFERENCES `questions` (`id`)
         ON DELETE CASCADE,
-    CONSTRAINT `education_studentanswer_selected_option_id_fk`
-        FOREIGN KEY (`selected_option_id`) REFERENCES `education_answeroption` (`id`)
+    CONSTRAINT `student_answers_selected_option_id_fk`
+        FOREIGN KEY (`selected_option_id`) REFERENCES `answer_options` (`id`)
         ON DELETE SET NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
-CREATE TABLE IF NOT EXISTS `education_activitylog` (
+CREATE TABLE IF NOT EXISTS `logs` (
     `id` BIGINT NOT NULL AUTO_INCREMENT,
     `user_id` BIGINT NULL,
     `action_type` VARCHAR(20) NOT NULL,
@@ -288,12 +288,12 @@ CREATE TABLE IF NOT EXISTS `education_activitylog` (
     `ip_address` VARCHAR(39) NULL,
     `created_at` DATETIME(6) NOT NULL,
     PRIMARY KEY (`id`),
-    KEY `education_activitylog_user_id_idx` (`user_id`),
-    KEY `education_activitylog_created_at_idx` (`created_at`),
-    CONSTRAINT `education_activitylog_user_id_fk`
-        FOREIGN KEY (`user_id`) REFERENCES `education_user` (`id`)
+    KEY `logs_user_id_idx` (`user_id`),
+    KEY `logs_created_at_idx` (`created_at`),
+    CONSTRAINT `logs_user_id_fk`
+        FOREIGN KEY (`user_id`) REFERENCES `users` (`id`)
         ON DELETE SET NULL,
-    CONSTRAINT `education_activitylog_action_type_chk`
+    CONSTRAINT `logs_action_type_chk`
         CHECK (`action_type` IN ('auth', 'profile', 'test', 'analytics', 'admin'))
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
@@ -313,7 +313,7 @@ CREATE TABLE IF NOT EXISTS `django_admin_log` (
         FOREIGN KEY (`content_type_id`) REFERENCES `django_content_type` (`id`)
         ON DELETE SET NULL,
     CONSTRAINT `django_admin_log_user_id_fk`
-        FOREIGN KEY (`user_id`) REFERENCES `education_user` (`id`)
+        FOREIGN KEY (`user_id`) REFERENCES `users` (`id`)
         ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 

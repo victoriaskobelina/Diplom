@@ -65,6 +65,7 @@ class User(AbstractUser):
     objects = UserManager()
 
     class Meta:
+        db_table = "users"
         ordering = ["last_name", "first_name", "username"]
         verbose_name = "Пользователь"
         verbose_name_plural = "Пользователи"
@@ -114,6 +115,7 @@ class AcademicGroup(models.Model):
     )
 
     class Meta:
+        db_table = "groups"
         ordering = ["name"]
         verbose_name = "Учебная группа"
         verbose_name_plural = "Учебные группы"
@@ -141,6 +143,7 @@ class Discipline(models.Model):
     )
 
     class Meta:
+        db_table = "disciplines"
         ordering = ["name"]
         verbose_name = "Дисциплина"
         verbose_name_plural = "Дисциплины"
@@ -181,6 +184,7 @@ class Test(models.Model):
     updated_at = models.DateTimeField("Обновлён", auto_now=True)
 
     class Meta:
+        db_table = "tests"
         ordering = ["-updated_at", "title"]
         verbose_name = "Тест"
         verbose_name_plural = "Тесты"
@@ -243,6 +247,7 @@ class Question(models.Model):
     order = models.PositiveIntegerField("Порядок", default=1)
 
     class Meta:
+        db_table = "questions"
         ordering = ["order", "id"]
         unique_together = ("test", "order")
         verbose_name = "Вопрос"
@@ -264,6 +269,7 @@ class AnswerOption(models.Model):
     order = models.PositiveIntegerField("Порядок", default=1)
 
     class Meta:
+        db_table = "answer_options"
         ordering = ["order", "id"]
         unique_together = ("question", "order")
         verbose_name = "Вариант ответа"
@@ -291,6 +297,7 @@ class TestAttempt(models.Model):
     is_finished = models.BooleanField("Завершён", default=False)
 
     class Meta:
+        db_table = "test_attempts"
         ordering = ["-started_at"]
         unique_together = ("student", "test", "attempt_number")
         verbose_name = "Попытка прохождения"
@@ -370,6 +377,7 @@ class StudentAnswer(models.Model):
     answered_at = models.DateTimeField("Обновлено", auto_now=True)
 
     class Meta:
+        db_table = "student_answers"
         ordering = ["question__order", "id"]
         unique_together = ("attempt", "question")
         verbose_name = "Ответ студента"
@@ -410,6 +418,7 @@ class ActivityLog(models.Model):
     created_at = models.DateTimeField("Дата и время", auto_now_add=True)
 
     class Meta:
+        db_table = "logs"
         ordering = ["-created_at"]
         verbose_name = "Журнал действия"
         verbose_name_plural = "Журнал действий"

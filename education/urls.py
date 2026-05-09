@@ -33,6 +33,7 @@ urlpatterns = [
         views.question_delete,
         name="question_delete",
     ),
+    path("teacher/reports/export/", views.test_results_export, name="test_results_export"),
     path("teacher/reports/<int:pk>/", views.report_detail, name="report_detail"),
     path("tests/<int:pk>/start/", views.start_test, name="start_test"),
     path("attempts/<int:attempt_pk>/question/<int:order>/", views.take_test, name="take_test"),

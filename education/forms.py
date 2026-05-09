@@ -452,9 +452,12 @@ class ActivityLogFilterForm(StyledFormMixin, forms.Form):
         required=False,
         label="Тип действия",
     )
-    user = forms.ModelChoiceField(
-        queryset=User.objects.all(),
+    user_query = forms.CharField(
         required=False,
-        label="Пользователь",
-        empty_label="Все пользователи",
+        label="ФИО пользователя",
+        widget=forms.TextInput(
+            attrs={
+                "placeholder": "Введите фамилию, имя или ФИО",
+            }
+        ),
     )
