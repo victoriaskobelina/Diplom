@@ -6,9 +6,11 @@ from .models import (
     ActivityLog,
     AnswerOption,
     Discipline,
+    DisciplineGroup,
     Question,
     StudentAnswer,
     Test,
+    TestGroup,
     TestAttempt,
     User,
 )
@@ -22,6 +24,16 @@ class AnswerOptionInline(admin.TabularInline):
 class QuestionInline(admin.StackedInline):
     model = Question
     extra = 0
+
+
+class DisciplineGroupInline(admin.TabularInline):
+    model = DisciplineGroup
+    extra = 1
+
+
+class TestGroupInline(admin.TabularInline):
+    model = TestGroup
+    extra = 1
 
 
 @admin.register(User)
@@ -60,8 +72,9 @@ class AcademicGroupAdmin(admin.ModelAdmin):
 @admin.register(Discipline)
 class DisciplineAdmin(admin.ModelAdmin):
     list_display = ("name", "code")
-    filter_horizontal = ("teachers", "groups")
+    filter_horizontal = ("teachers",)
     search_fields = ("name", "code")
+    inlines = [DisciplineGroupInline]
 
 
 @admin.register(Test)
@@ -69,8 +82,7 @@ class TestAdmin(admin.ModelAdmin):
     list_display = ("title", "discipline", "author", "is_published", "max_attempts")
     list_filter = ("is_published", "discipline")
     search_fields = ("title", "description")
-    filter_horizontal = ("groups",)
-    inlines = [QuestionInline]
+    inlines = [TestGroupInline, QuestionInline]
 
 
 @admin.register(Question)

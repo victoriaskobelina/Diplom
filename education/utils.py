@@ -6,7 +6,7 @@ from django.shortcuts import redirect
 from .models import ActivityLog
 
 
-def log_activity(request, user, action_type, description, details=None):
+def log_activity(request, user, action_type, description):
     ip_address = None
     if request:
         forwarded = request.META.get("HTTP_X_FORWARDED_FOR")
@@ -15,7 +15,6 @@ def log_activity(request, user, action_type, description, details=None):
         user=user,
         action_type=action_type,
         description=description,
-        details=details or {},
         ip_address=ip_address,
     )
 

@@ -45,10 +45,6 @@
 
             {% with current_view=current_view_name|default:'' %}
                 <nav class="main-nav" aria-label="Основная навигация">
-                    {% if not user.is_authenticated and current_view != 'education:home' and current_view != 'education:register' and current_view != 'education:profile_edit' and current_view != 'password_reset' and current_view != 'education:privacy_policy' and current_view != 'education:personal_data_consent' %}
-                        <a href="{% url 'education:home' %}" {% if current_view == 'education:home' %}aria-current="page"{% endif %}>Главная</a>
-                    {% endif %}
-
                     {% if user.is_authenticated %}
                         {% if user.is_administrator %}
                             <a href="{% url 'education:admin_dashboard' %}" {% if current_view == 'education:admin_dashboard' %}aria-current="page"{% endif %}>Администрирование</a>
@@ -65,8 +61,7 @@
                     {% else %}
                         {% if current_view == 'education:register' or current_view == 'password_reset' %}
                             <a href="{% url 'education:home' %}" class="nav-accent">Главная</a>
-                        {% elif current_view == 'education:privacy_policy' or current_view == 'education:personal_data_consent' %}
-                        {% else %}
+                        {% elif current_view != 'education:privacy_policy' and current_view != 'education:personal_data_consent' %}
                             <a href="{% url 'education:register' %}" class="nav-accent" {% if current_view == 'education:register' %}aria-current="page"{% endif %}>Регистрация</a>
                         {% endif %}
                     {% endif %}

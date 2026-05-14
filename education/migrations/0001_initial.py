@@ -48,7 +48,6 @@ class Migration(migrations.Migration):
                 ('email', models.EmailField(blank=True, max_length=254, null=True, unique=True, verbose_name='Электронная почта')),
                 ('middle_name', models.CharField(blank=True, max_length=150, verbose_name='Отчество')),
                 ('phone', models.CharField(blank=True, max_length=32, verbose_name='Телефон')),
-                ('bio', models.TextField(blank=True, verbose_name='О себе')),
                 ('role', models.CharField(choices=[('student', 'Студент'), ('teacher', 'Преподаватель'), ('administrator', 'Администратор')], default='student', max_length=20, verbose_name='Роль')),
                 ('groups', models.ManyToManyField(blank=True, help_text='The groups this user belongs to. A user will get all permissions granted to each of their groups.', related_name='user_set', related_query_name='user', to='auth.group', verbose_name='groups')),
                 ('user_permissions', models.ManyToManyField(blank=True, help_text='Specific permissions for this user.', related_name='user_set', related_query_name='user', to='auth.permission', verbose_name='user permissions')),
@@ -81,7 +80,7 @@ class Migration(migrations.Migration):
         migrations.AddField(
             model_name='user',
             name='academic_group',
-            field=models.ForeignKey(blank=True, null=True, on_delete=django.db.models.deletion.SET_NULL, related_name='students', to='education.academicgroup', verbose_name='Учебная группа'),
+            field=models.ForeignKey(blank=True, db_column='group_id', null=True, on_delete=django.db.models.deletion.SET_NULL, related_name='students', to='education.academicgroup', verbose_name='Учебная группа'),
         ),
         migrations.CreateModel(
             name='ActivityLog',
@@ -89,7 +88,6 @@ class Migration(migrations.Migration):
                 ('id', models.BigAutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
                 ('action_type', models.CharField(choices=[('auth', 'Авторизация'), ('profile', 'Профиль'), ('test', 'Тест'), ('analytics', 'Аналитика'), ('admin', 'Администрирование')], max_length=20, verbose_name='Тип действия')),
                 ('description', models.CharField(max_length=255, verbose_name='Описание')),
-                ('details', models.JSONField(blank=True, null=True, verbose_name='Детали')),
                 ('ip_address', models.GenericIPAddressField(blank=True, null=True, verbose_name='IP-адрес')),
                 ('created_at', models.DateTimeField(auto_now_add=True, verbose_name='Дата и время')),
                 ('user', models.ForeignKey(blank=True, null=True, on_delete=django.db.models.deletion.SET_NULL, related_name='activity_logs', to=settings.AUTH_USER_MODEL, verbose_name='Пользователь')),
@@ -108,7 +106,7 @@ class Migration(migrations.Migration):
                 ('name', models.CharField(max_length=120, unique=True, verbose_name='Дисциплина')),
                 ('code', models.CharField(blank=True, max_length=20, verbose_name='Код')),
                 ('description', models.TextField(blank=True, verbose_name='Описание')),
-                ('groups', models.ManyToManyField(blank=True, related_name='disciplines', to='education.academicgroup', verbose_name='Учебные группы')),
+                ('groups', models.ManyToManyField(blank=True, related_name='disciplines', through='education.DisciplineGroup', through_fields=('discipline', 'group'), to='education.academicgroup', verbose_name='Учебные группы')),
                 ('teachers', models.ManyToManyField(blank=True, limit_choices_to={'role': 'teacher'}, related_name='disciplines_taught', to=settings.AUTH_USER_MODEL, verbose_name='Преподаватели')),
             ],
             options={
@@ -116,6 +114,20 @@ class Migration(migrations.Migration):
                 'verbose_name_plural': 'Дисциплины',
                 'db_table': 'disciplines',
                 'ordering': ['name'],
+            },
+        ),
+        migrations.CreateModel(
+            name='DisciplineGroup',
+            fields=[
+                ('id', models.BigAutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
+                ('discipline', models.ForeignKey(db_column='discipline_id', on_delete=django.db.models.deletion.CASCADE, related_name='group_links', to='education.discipline', verbose_name='Дисциплина')),
+                ('group', models.ForeignKey(db_column='group_id', on_delete=django.db.models.deletion.CASCADE, related_name='discipline_links', to='education.academicgroup', verbose_name='Учебная группа')),
+            ],
+            options={
+                'verbose_name': 'Связь дисциплины и группы',
+                'verbose_name_plural': 'Связи дисциплин и групп',
+                'db_table': 'disciplines_groups',
+                'unique_together': {('discipline', 'group')},
             },
         ),
         migrations.CreateModel(
@@ -143,7 +155,6 @@ class Migration(migrations.Migration):
                 ('description', models.TextField(blank=True, verbose_name='Описание')),
                 ('time_limit_minutes', models.PositiveIntegerField(default=30, verbose_name='Лимит времени (мин.)')),
                 ('max_attempts', models.PositiveIntegerField(default=1, verbose_name='Максимум попыток')),
-                ('allow_retake', models.BooleanField(default=False, verbose_name='Разрешить повторное прохождение')),
                 ('is_published', models.BooleanField(default=False, verbose_name='Опубликован')),
                 ('available_from', models.DateTimeField(blank=True, null=True, verbose_name='Доступен с')),
                 ('available_to', models.DateTimeField(blank=True, null=True, verbose_name='Доступен до')),
@@ -151,13 +162,27 @@ class Migration(migrations.Migration):
                 ('updated_at', models.DateTimeField(auto_now=True, verbose_name='Обновлён')),
                 ('author', models.ForeignKey(limit_choices_to={'role': 'teacher'}, on_delete=django.db.models.deletion.CASCADE, related_name='created_tests', to=settings.AUTH_USER_MODEL, verbose_name='Автор')),
                 ('discipline', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, related_name='tests', to='education.discipline', verbose_name='Дисциплина')),
-                ('groups', models.ManyToManyField(blank=True, related_name='tests', to='education.academicgroup', verbose_name='Доступные группы')),
+                ('groups', models.ManyToManyField(blank=True, related_name='tests', through='education.TestGroup', through_fields=('test', 'group'), to='education.academicgroup', verbose_name='Доступные группы')),
             ],
             options={
                 'verbose_name': 'Тест',
                 'verbose_name_plural': 'Тесты',
                 'db_table': 'tests',
                 'ordering': ['-updated_at', 'title'],
+            },
+        ),
+        migrations.CreateModel(
+            name='TestGroup',
+            fields=[
+                ('id', models.BigAutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
+                ('group', models.ForeignKey(db_column='group_id', on_delete=django.db.models.deletion.CASCADE, related_name='test_links', to='education.academicgroup', verbose_name='Учебная группа')),
+                ('test', models.ForeignKey(db_column='test_id', on_delete=django.db.models.deletion.CASCADE, related_name='group_links', to='education.test', verbose_name='Тест')),
+            ],
+            options={
+                'verbose_name': 'Связь теста и группы',
+                'verbose_name_plural': 'Связи тестов и групп',
+                'db_table': 'tests_groups',
+                'unique_together': {('test', 'group')},
             },
         ),
         migrations.AddField(

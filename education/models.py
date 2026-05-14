@@ -45,7 +45,6 @@ class User(AbstractUser):
     email = models.EmailField("Электронная почта", unique=True, blank=True, null=True)
     middle_name = models.CharField("Отчество", max_length=150, blank=True)
     phone = models.CharField("Телефон", max_length=32, blank=True)
-    bio = models.TextField("О себе", blank=True)
     role = models.CharField(
         "Роль",
         max_length=20,
@@ -58,6 +57,7 @@ class User(AbstractUser):
         related_name="students",
         blank=True,
         null=True,
+        db_column="group_id",
         verbose_name="Учебная группа",
     )
 
@@ -137,6 +137,8 @@ class Discipline(models.Model):
     )
     groups = models.ManyToManyField(
         AcademicGroup,
+        through="DisciplineGroup",
+        through_fields=("discipline", "group"),
         related_name="disciplines",
         blank=True,
         verbose_name="Учебные группы",
@@ -150,6 +152,32 @@ class Discipline(models.Model):
 
     def __str__(self):
         return self.name
+
+
+class DisciplineGroup(models.Model):
+    discipline = models.ForeignKey(
+        Discipline,
+        on_delete=models.CASCADE,
+        db_column="discipline_id",
+        related_name="group_links",
+        verbose_name="Дисциплина",
+    )
+    group = models.ForeignKey(
+        AcademicGroup,
+        on_delete=models.CASCADE,
+        db_column="group_id",
+        related_name="discipline_links",
+        verbose_name="Учебная группа",
+    )
+
+    class Meta:
+        db_table = "disciplines_groups"
+        unique_together = ("discipline", "group")
+        verbose_name = "Связь дисциплины и группы"
+        verbose_name_plural = "Связи дисциплин и групп"
+
+    def __str__(self):
+        return f"{self.discipline} - {self.group}"
 
 
 class Test(models.Model):
@@ -170,13 +198,14 @@ class Test(models.Model):
     )
     groups = models.ManyToManyField(
         AcademicGroup,
+        through="TestGroup",
+        through_fields=("test", "group"),
         related_name="tests",
         blank=True,
         verbose_name="Доступные группы",
     )
     time_limit_minutes = models.PositiveIntegerField("Лимит времени (мин.)", default=30)
     max_attempts = models.PositiveIntegerField("Максимум попыток", default=1)
-    allow_retake = models.BooleanField("Разрешить повторное прохождение", default=False)
     is_published = models.BooleanField("Опубликован", default=False)
     available_from = models.DateTimeField("Доступен с", blank=True, null=True)
     available_to = models.DateTimeField("Доступен до", blank=True, null=True)
@@ -194,10 +223,6 @@ class Test(models.Model):
             raise ValidationError("Дата окончания должна быть позже даты начала.")
         if self.max_attempts < 1:
             raise ValidationError("Количество попыток должно быть не меньше 1.")
-
-    def save(self, *args, **kwargs):
-        self.allow_retake = self.max_attempts > 1
-        super().save(*args, **kwargs)
 
     @property
     def question_count(self):
@@ -238,6 +263,32 @@ class Test(models.Model):
 
     def __str__(self):
         return self.title
+
+
+class TestGroup(models.Model):
+    test = models.ForeignKey(
+        Test,
+        on_delete=models.CASCADE,
+        db_column="test_id",
+        related_name="group_links",
+        verbose_name="Тест",
+    )
+    group = models.ForeignKey(
+        AcademicGroup,
+        on_delete=models.CASCADE,
+        db_column="group_id",
+        related_name="test_links",
+        verbose_name="Учебная группа",
+    )
+
+    class Meta:
+        db_table = "tests_groups"
+        unique_together = ("test", "group")
+        verbose_name = "Связь теста и группы"
+        verbose_name_plural = "Связи тестов и групп"
+
+    def __str__(self):
+        return f"{self.test} - {self.group}"
 
 
 class Question(models.Model):
@@ -413,7 +464,6 @@ class ActivityLog(models.Model):
     )
     action_type = models.CharField("Тип действия", max_length=20, choices=ActionType.choices)
     description = models.CharField("Описание", max_length=255)
-    details = models.JSONField("Детали", blank=True, null=True)
     ip_address = models.GenericIPAddressField("IP-адрес", blank=True, null=True)
     created_at = models.DateTimeField("Дата и время", auto_now_add=True)
 

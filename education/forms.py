@@ -194,6 +194,12 @@ class ProfileForm(StyledFormMixin, forms.ModelForm):
         return email
 
 class TeacherTestForm(StyledFormMixin, forms.ModelForm):
+    groups = forms.ModelMultipleChoiceField(
+        queryset=AcademicGroup.objects.none(),
+        required=False,
+        label="Доступные группы",
+    )
+
     class Meta:
         model = Test
         fields = (
@@ -230,6 +236,8 @@ class TeacherTestForm(StyledFormMixin, forms.ModelForm):
                 groups = AcademicGroup.objects.filter(disciplines__in=assigned_disciplines).distinct()
         self.fields["discipline"].queryset = disciplines
         self.fields["groups"].queryset = groups
+        if self.instance.pk:
+            self.fields["groups"].initial = self.instance.groups.all()
         if not show_published_field:
             self.fields.pop("is_published", None)
         self.fields["available_from"].input_formats = ["%Y-%m-%dT%H:%M"]
@@ -242,15 +250,6 @@ class TeacherTestForm(StyledFormMixin, forms.ModelForm):
         if available_from and available_to and available_to <= available_from:
             self.add_error("available_to", "Дата окончания должна быть позже даты начала.")
         return cleaned_data
-
-
-    def save(self, commit=True):
-        instance = super().save(commit=False)
-        instance.allow_retake = instance.max_attempts > 1
-        if commit:
-            instance.save()
-            self.save_m2m()
-        return instance
 
 
 class QuestionForm(StyledFormMixin, forms.ModelForm):
@@ -440,10 +439,21 @@ class AcademicGroupForm(StyledFormMixin, forms.ModelForm):
 
 
 class DisciplineForm(StyledFormMixin, forms.ModelForm):
+    groups = forms.ModelMultipleChoiceField(
+        queryset=AcademicGroup.objects.all(),
+        required=False,
+        label="Учебные группы",
+    )
+
     class Meta:
         model = Discipline
         fields = ("name", "code", "description", "teachers", "groups")
         widgets = {"description": forms.Textarea(attrs={"rows": 3})}
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        if self.instance.pk:
+            self.fields["groups"].initial = self.instance.groups.all()
 
 
 class ActivityLogFilterForm(StyledFormMixin, forms.Form):

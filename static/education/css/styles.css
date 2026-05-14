@@ -571,6 +571,10 @@ textarea.form-control {
     font-size: 0.9rem;
 }
 
+.field-help {
+    margin: 0;
+}
+
 .field-help ul {
     margin: 6px 0 0;
     padding-left: 18px;
@@ -578,6 +582,24 @@ textarea.form-control {
 
 .field-help li + li {
     margin-top: 4px;
+}
+
+body[data-view-name="education:register"] .form-field[data-field-name="password1"] {
+    gap: 2px;
+    margin-bottom: -8px;
+}
+
+body[data-view-name="education:register"] .form-field[data-field-name="password1"] .field-help {
+    font-size: 0.86rem;
+    line-height: 1.25;
+}
+
+body[data-view-name="education:register"] .form-field[data-field-name="password1"] .field-help ul {
+    margin: 6px 0 0;
+}
+
+body[data-view-name="education:register"] .form-field[data-field-name="password1"] .field-help li + li {
+    margin-top: 1px;
 }
 
 .checkbox-line a,
