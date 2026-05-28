@@ -18,6 +18,7 @@ from .admin_views import (
     group_edit,
     group_list,
 )
+from .error_views import permission_denied
 from .public_views import (
     dashboard,
     home,

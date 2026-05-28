@@ -914,6 +914,32 @@ body[data-view-name="education:register"] .form-field[data-field-name="password1
     gap: 16px;
 }
 
+.error-section {
+    display: grid;
+    align-items: center;
+    min-height: min(620px, calc(100svh - 220px));
+}
+
+.error-dialog {
+    position: relative;
+    width: min(100%, 560px);
+    margin: 0 auto;
+}
+
+.error-dialog h1,
+.error-dialog p {
+    margin: 0;
+}
+
+.error-dialog p {
+    color: var(--muted);
+    line-height: 1.7;
+}
+
+.error-actions {
+    justify-content: center;
+}
+
 .auth-panel .form-actions {
     display: grid;
     grid-template-columns: repeat(2, minmax(0, 1fr));

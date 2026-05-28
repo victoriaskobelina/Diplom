@@ -1,0 +1,25 @@
+{% extends "base.html" %}
+
+{% block title %}Ошибка 403 | БТЖТиС{% endblock %}
+
+{% block content %}
+<section class="section error-section" aria-labelledby="error-title">
+    <div class="container narrow">
+        <div class="panel centered-panel error-dialog" role="alert" aria-describedby="error-message">
+            <span class="eyebrow">Ошибка 403</span>
+            <h1 id="error-title">Доступ запрещён</h1>
+            <p id="error-message">
+                {{ error_message|default:"У вашей учётной записи нет прав для просмотра этой страницы." }}
+            </p>
+            <div class="form-actions error-actions">
+                {% if user.is_authenticated %}
+                    <a class="btn btn-primary" href="{% url 'education:dashboard' %}">Вернуться в кабинет</a>
+                    <a class="btn btn-secondary" href="{% url 'education:profile_edit' %}">Открыть профиль</a>
+                {% else %}
+                    <a class="btn btn-primary" href="{% url 'education:home' %}">На страницу входа</a>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</section>
+{% endblock %}

@@ -10,21 +10,13 @@
             <p>{{ attempt.test.description|default:"Внимательно прочитайте вопрос и выберите один правильный ответ." }}</p>
         </div>
 
-        <div class="panel test-panel" data-timer-seconds="{{ attempt.remaining_seconds|default_if_none:'' }}">
+        <div class="panel test-panel">
             <div class="test-meta">
                 <div>
                     <span class="eyebrow">Прогресс</span>
                     <strong>Вопрос {{ current_order }} из {{ questions_total }}</strong>
                 </div>
-                <div>
-                    <span class="eyebrow">Оставшееся время</span>
-                    <strong data-timer-display>{{ attempt.remaining_seconds|default:"Без ограничения" }}</strong>
-                </div>
             </div>
-            <div class="progress">
-                <span style="width: {{ attempt.progress_percent }}%;"></span>
-            </div>
-
             <article class="question-stage">
                 <h2>{{ question.text }}</h2>
                 {% if question.image %}

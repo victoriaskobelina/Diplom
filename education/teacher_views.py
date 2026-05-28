@@ -3,7 +3,7 @@ from urllib.parse import quote
 
 from django.contrib import messages
 from django.db.models import Count, Max, Q
-from django.http import HttpResponse, HttpResponseForbidden
+from django.http import HttpResponse
 from django.shortcuts import get_object_or_404, redirect, render
 from django.utils import timezone
 from django.views.decorators.http import require_POST
@@ -13,7 +13,7 @@ from openpyxl.utils import get_column_letter
 
 from .forms import AnswerOptionFormSet, QuestionForm, TeacherTestForm
 from .models import AcademicGroup, ActivityLog, Question, StudentAnswer, Test, TestAttempt, User
-from .utils import log_activity, role_required
+from .utils import forbidden_response, log_activity, role_required
 
 
 # кабинет преподавателя собирает его тесты и краткую статистику попыток
@@ -265,7 +265,7 @@ def question_delete(request, test_pk, question_pk):
 def report_detail(request, pk):
     test = get_object_or_404(Test.objects.select_related("discipline", "author"), pk=pk)
     if request.user.is_teacher and test.author != request.user:
-        return HttpResponseForbidden("Доступ запрещён.")
+        return forbidden_response(request, "У вас нет доступа к отчёту по этому тесту.")
 
     attempts = (
         test.attempts.filter(is_finished=True)

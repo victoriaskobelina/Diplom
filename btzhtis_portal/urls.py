@@ -32,6 +32,8 @@ urlpatterns = [
     path('', include('education.urls')),
 ]
 
+handler403 = 'education.views.permission_denied'
+
 # в режиме разработки показываем Django admin и раздаем загруженные медиафайлы
 if settings.DEBUG:
     urlpatterns.insert(0, path('django-admin/', admin.site.urls))

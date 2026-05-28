@@ -1,12 +1,12 @@
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
 from django.db.models import Q
-from django.http import HttpResponseForbidden, JsonResponse
+from django.http import JsonResponse
 from django.shortcuts import get_object_or_404, redirect, render
 from django.views.decorators.http import require_POST
 
 from .models import ActivityLog, StudentAnswer, Test, TestAttempt, User
-from .utils import log_activity, role_required
+from .utils import forbidden_response, log_activity, role_required
 
 
 # кабинет студента показывает только доступные тесты и историю попыток
@@ -173,7 +173,7 @@ def attempt_result(request, attempt_pk):
     is_teacher_owner = request.user.is_teacher and attempt.test.author == request.user
     is_admin = request.user.is_administrator or request.user.is_superuser
     if not (is_owner or is_teacher_owner or is_admin):
-        return HttpResponseForbidden("Доступ запрещён.")
+        return forbidden_response(request, "У вас нет доступа к результату этой попытки.")
     if not attempt.is_finished and is_owner:
         return redirect("education:take_test", attempt_pk=attempt.pk, order=1)
 
