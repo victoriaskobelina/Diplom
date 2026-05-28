@@ -105,7 +105,7 @@ def test_update(request, pk):
         "education/form_page.html",
         {
             "title": "Редактирование теста",
-            "subtitle": "Измените параметры времени и попыток.",
+            "subtitle": "Измените параметры попыток и доступности.",
             "form": form,
             "submit_label": "Сохранить",
             "cancel_url": "education:test_preview",

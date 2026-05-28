@@ -78,7 +78,7 @@ def start_test(request, pk):
     return redirect("education:take_test", attempt_pk=attempt.pk, order=1)
 
 
-# страница прохождения показывает один вопрос и следит за истечением таймера
+# страница прохождения показывает один вопрос и сохраняет выбранный ответ
 @role_required(User.Role.STUDENT)
 def take_test(request, attempt_pk, order=1):
     attempt = get_object_or_404(
@@ -87,17 +87,6 @@ def take_test(request, attempt_pk, order=1):
         student=request.user,
     )
     if attempt.is_finished:
-        return redirect("education:attempt_result", attempt_pk=attempt.pk)
-
-    if attempt.is_expired:
-        attempt.finish()
-        log_activity(
-            request,
-            request.user,
-            ActivityLog.ActionType.TEST,
-            f"Тест «{attempt.test.title}» завершён по таймеру",
-        )
-        messages.warning(request, "Время вышло, тест завершён автоматически.")
         return redirect("education:attempt_result", attempt_pk=attempt.pk)
 
     questions = list(attempt.test.questions.prefetch_related("options"))
@@ -125,9 +114,6 @@ def take_test(request, attempt_pk, order=1):
 @require_POST
 def save_answer(request, attempt_pk, question_pk):
     attempt = get_object_or_404(TestAttempt, pk=attempt_pk, student=request.user, is_finished=False)
-    if attempt.is_expired:
-        attempt.finish()
-        return JsonResponse({"ok": False, "expired": True}, status=400)
 
     answer = get_object_or_404(StudentAnswer, attempt=attempt, question_id=question_pk)
     option_id = request.POST.get("option_id")

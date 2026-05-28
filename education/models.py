@@ -1,5 +1,3 @@
-from datetime import timedelta
-
 from django.conf import settings
 from django.contrib.auth.models import AbstractUser, UserManager as DjangoUserManager
 from django.core.exceptions import ValidationError
@@ -187,7 +185,7 @@ class DisciplineGroup(models.Model):
         return f"{self.discipline} - {self.group}"
 
 
-# тест задает правила доступа, лимит времени, число попыток и привязку к группам
+# тест задает правила доступа, число попыток и привязку к группам
 class Test(models.Model):
     title = models.CharField("Название теста", max_length=200)
     description = models.TextField("Описание", blank=True)
@@ -212,7 +210,6 @@ class Test(models.Model):
         blank=True,
         verbose_name="Доступные группы",
     )
-    time_limit_minutes = models.PositiveIntegerField("Лимит времени (мин.)", default=30)
     max_attempts = models.PositiveIntegerField("Максимум попыток", default=1)
     available_from = models.DateTimeField("Доступен с", blank=True, null=True)
     available_to = models.DateTimeField("Доступен до", blank=True, null=True)
@@ -378,19 +375,6 @@ class TestAttempt(models.Model):
             return 0
         answered = self.answers.exclude(selected_option__isnull=True).count()
         return int(answered / total * 100)
-
-    @property
-    def is_expired(self):
-        if not self.test.time_limit_minutes:
-            return False
-        return timezone.now() >= self.started_at + timedelta(minutes=self.test.time_limit_minutes)
-
-    @property
-    def remaining_seconds(self):
-        if not self.test.time_limit_minutes:
-            return None
-        delta = self.started_at + timedelta(minutes=self.test.time_limit_minutes) - timezone.now()
-        return max(int(delta.total_seconds()), 0)
 
     def ensure_answer_placeholders(self):
         # для каждого вопроса создается строка ответа, чтобы прогресс считался стабильно
