@@ -19,7 +19,6 @@
 
         <div class="stats-strip">
             <article class="mini-stat"><span>Количество прохождений</span><strong>{{ summary.attempts }}</strong></article>
-            <article class="mini-stat"><span>Средний балл</span><strong>{{ summary.average_score }}</strong></article>
         </div>
 
         <section class="panel panel-top-space">
@@ -56,27 +55,37 @@
         <section class="panel panel-top-space">
             <div class="section-head">
                 <h2>Попытки студентов</h2>
-                <p>Разверните карточку, чтобы посмотреть ответы конкретного студента.</p>
+                <p>Результаты сгруппированы по учебным группам. Разверните карточку, чтобы посмотреть ответы конкретного студента.</p>
             </div>
-            <div class="details-list">
-                {% for attempt in attempts %}
-                    <details class="details-card">
-                        <summary>
-                            <span>{{ attempt.student.full_name }}</span>
-                            <span>{{ attempt.score }}/{{ attempt.max_score }} • оценка {{ attempt.grade }}</span>
-                        </summary>
-                        <div class="details-content">
-                            {% for answer in attempt.answers.all %}
-                                <div class="answer-row">
-                                    <strong>{{ answer.question.order }}.</strong>
-                                    <span>{{ answer.question.text }}</span>
-                                    <span class="{% if answer.is_correct %}success-text{% else %}danger-text{% endif %}">
-                                        {{ answer.selected_option|default:"Ответ не выбран" }}
-                                    </span>
-                                </div>
+            <div class="attempt-groups">
+                {% for group_data in attempt_groups %}
+                    <section class="attempt-group" aria-labelledby="attempt-group-{{ forloop.counter }}">
+                        <div class="attempt-group-head">
+                            <h3 id="attempt-group-{{ forloop.counter }}">{{ group_data.group_name }}</h3>
+                            <p>Попыток: {{ group_data.attempts_count }}</p>
+                        </div>
+                        <div class="details-list">
+                            {% for attempt in group_data.attempts %}
+                                <details class="details-card">
+                                    <summary>
+                                        <span>{{ attempt.student.full_name }}</span>
+                                        <span>{{ attempt.score }}/{{ attempt.max_score }} • оценка {{ attempt.grade }}</span>
+                                    </summary>
+                                    <div class="details-content">
+                                        {% for answer in attempt.answers.all %}
+                                            <div class="answer-row">
+                                                <strong>{{ answer.question.order }}.</strong>
+                                                <span>{{ answer.question.text }}</span>
+                                                <span class="{% if answer.is_correct %}success-text{% else %}danger-text{% endif %}">
+                                                    {{ answer.selected_option|default:"Ответ не выбран" }}
+                                                </span>
+                                            </div>
+                                        {% endfor %}
+                                    </div>
+                                </details>
                             {% endfor %}
                         </div>
-                    </details>
+                    </section>
                 {% empty %}
                     <p class="muted">Завершённых попыток пока нет.</p>
                 {% endfor %}

@@ -1,3 +1,4 @@
+// получает CSRF-токен из cookie для AJAX-запросов Django
 function getCookie(name) {
     const cookieValue = document.cookie
         .split(";")
@@ -6,6 +7,7 @@ function getCookie(name) {
     return cookieValue ? decodeURIComponent(cookieValue.split("=")[1]) : "";
 }
 
+// поле учебной группы показывается только для роли студента
 function toggleAcademicGroupField() {
     const roleField = document.getElementById("id_role");
     const groupField = document.querySelector('[data-field-name="academic_group"]');
@@ -16,6 +18,7 @@ function toggleAcademicGroupField() {
     groupField.style.display = visible ? "" : "none";
 }
 
+// инициализирует зависимость полей формы от выбранной роли пользователя
 function initRoleDependentFields() {
     const roleField = document.getElementById("id_role");
     if (!roleField) {
@@ -25,7 +28,8 @@ function initRoleDependentFields() {
     toggleAcademicGroupField();
 }
 
-function normalizePhoneDigits(value, maxDigits = 14) {
+// нормализует телефон до российских цифр, начиная с 7
+function normalizePhoneDigits(value, maxDigits = 11) {
     const rawDigits = value.replace(/\D/g, "");
     if (!rawDigits) {
         return "";
@@ -40,14 +44,14 @@ function normalizePhoneDigits(value, maxDigits = 14) {
     return digits.slice(0, maxDigits);
 }
 
-function formatPhoneValue(value, maxDigits = 14) {
+// форматирует телефон в вид +7 (900) 123-45-67 прямо при вводе
+function formatPhoneValue(value, maxDigits = 11) {
     const digits = normalizePhoneDigits(value, maxDigits);
     if (!digits) {
         return "";
     }
 
     const local = digits.slice(1, 11);
-    const extension = digits.slice(11);
     let formatted = "+7";
 
     if (local.length) {
@@ -65,19 +69,17 @@ function formatPhoneValue(value, maxDigits = 14) {
     if (local.length > 8) {
         formatted += `-${local.slice(8, 10)}`;
     }
-    if (extension.length) {
-        formatted += ` ${extension}`;
-    }
-
     return formatted;
 }
 
+// убирает из ФИО лишние символы и повторяющиеся пробелы
 function formatPersonNameValue(value) {
     return value
         .replace(/[^A-Za-zА-Яа-яЁё\s-]/g, "")
         .replace(/\s{2,}/g, " ");
 }
 
+// приводит email к нижнему регистру и удаляет недопустимые символы
 function formatEmailValue(value) {
     return value
         .toLowerCase()
@@ -85,10 +87,11 @@ function formatEmailValue(value) {
         .replace(/[^a-z0-9@._%+-]/g, "");
 }
 
+// подключает маски ко всем полям, помеченным data-mask
 function initInputMasks() {
     const phoneFields = document.querySelectorAll('input[data-mask="phone"]');
     phoneFields.forEach((field) => {
-        const maxDigits = parseInt(field.dataset.maxDigits || "14", 10);
+        const maxDigits = parseInt(field.dataset.maxDigits || "11", 10);
         field.addEventListener("beforeinput", (event) => {
             if (event.inputType.startsWith("insert") && event.data && /\D/.test(event.data)) {
                 event.preventDefault();
@@ -130,6 +133,7 @@ function initInputMasks() {
     });
 }
 
+// сохраняет выбранный ответ без перезагрузки страницы теста
 function initTestAutosave() {
     const radios = document.querySelectorAll('input[type="radio"][data-save-url]');
     const statusNode = document.querySelector("[data-save-status]");
@@ -164,6 +168,7 @@ function initTestAutosave() {
     });
 }
 
+// отсчитывает оставшееся время и отправляет форму при завершении таймера
 function initTestTimer() {
     const timerPanel = document.querySelector("[data-timer-seconds]");
     const timerDisplay = document.querySelector("[data-timer-display]");
@@ -194,6 +199,7 @@ function initTestTimer() {
     }, 1000);
 }
 
+// для вопроса допускается только один правильный вариант ответа
 window.enforceSingleCorrectCheckbox = function(currentCheckbox) {
     if (!currentCheckbox || !currentCheckbox.checked) {
         return;
@@ -213,6 +219,7 @@ window.enforceSingleCorrectCheckbox = function(currentCheckbox) {
         });
 };
 
+// подключает ограничение одного правильного ответа ко всем чекбоксам формы
 function initSingleCorrectCheckboxes() {
     const checkboxes = document.querySelectorAll('input[type="checkbox"][data-single-correct="true"]');
     if (!checkboxes.length) {
@@ -226,6 +233,7 @@ function initSingleCorrectCheckboxes() {
     });
 }
 
+// общая модалка подтверждения перехватывает опасные ссылки и submit-кнопки
 function initConfirmationModal() {
     const modal = document.querySelector("[data-confirm-modal]");
     const messageNode = modal?.querySelector("[data-confirm-modal-message]");
@@ -297,6 +305,7 @@ function initConfirmationModal() {
     });
 
     document.addEventListener("keydown", (event) => {
+        // пока модалка открыта, фокус циклически остается внутри нее
         if (modal.hidden) {
             return;
         }
@@ -349,6 +358,7 @@ function initConfirmationModal() {
     });
 }
 
+// после загрузки страницы активируем все интерактивные блоки интерфейса
 document.addEventListener("DOMContentLoaded", () => {
     initRoleDependentFields();
     initInputMasks();

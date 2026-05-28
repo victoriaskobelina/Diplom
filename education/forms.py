@@ -18,11 +18,14 @@ from .models import (
 )
 
 
+# единая стилизация виджетов делает формы совместимыми с Bootstrap-разметкой
 def apply_form_styles(form):
     for field in form.fields.values():
         widget = field.widget
         css_class = widget.attrs.get("class", "")
-        if isinstance(widget, forms.CheckboxInput):
+        if isinstance(widget, forms.CheckboxSelectMultiple):
+            widget.attrs["class"] = f"{css_class} form-check-input".strip()
+        elif isinstance(widget, forms.CheckboxInput):
             widget.attrs["class"] = f"{css_class} form-check-input".strip()
         elif isinstance(widget, (forms.Select, forms.SelectMultiple)):
             widget.attrs["class"] = f"{css_class} form-select".strip()
@@ -34,12 +37,51 @@ def apply_form_styles(form):
             widget.attrs["class"] = f"{css_class} form-control".strip()
 
 
+PHONE_DIGITS_COUNT = 11
+
+
+# поле телефона получает маску и мобильную клавиатуру с цифрами
+def configure_phone_field(field):
+    field.widget.attrs.update(
+        {
+            "data-mask": "phone",
+            "data-max-digits": str(PHONE_DIGITS_COUNT),
+            "placeholder": "+7 (___) ___-__-__",
+            "inputmode": "numeric",
+            "autocomplete": "tel",
+            "maxlength": 18,
+        }
+    )
+
+
+# серверная нормализация приводит разные варианты ввода к формату +7
+def clean_phone_number(phone):
+    phone = (phone or "").strip()
+    if not phone:
+        return ""
+
+    digits = re.sub(r"\D", "", phone)
+    if digits.startswith("8"):
+        digits = f"7{digits[1:]}"
+    elif len(digits) == 10:
+        digits = f"7{digits}"
+    elif not digits.startswith("7"):
+        digits = f"7{digits}"
+
+    if len(digits) != PHONE_DIGITS_COUNT or not digits.startswith("7"):
+        raise ValidationError("Введите телефон в формате +7 (900) 123-45-67.")
+
+    return f"+7 ({digits[1:4]}) {digits[4:7]}-{digits[7:9]}-{digits[9:11]}"
+
+
+# миксин применяет общие CSS-классы ко всем формам проекта
 class StyledFormMixin:
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         apply_form_styles(self)
 
 
+# форма входа переиспользует стандартную проверку Django и меняет текст ошибки
 class LoginForm(StyledFormMixin, AuthenticationForm):
     error_messages = {
         **AuthenticationForm.error_messages,
@@ -47,6 +89,7 @@ class LoginForm(StyledFormMixin, AuthenticationForm):
     }
 
 
+# форма регистрации сразу создает студента и требует согласие на обработку данных
 class SignUpForm(StyledFormMixin, UserCreationForm):
     privacy_consent = forms.BooleanField(
         required=True,
@@ -82,23 +125,14 @@ class SignUpForm(StyledFormMixin, UserCreationForm):
         self.fields["email"].widget.attrs.update(
             {
                 "data-mask": "email",
-                "placeholder": "name@example.com",
+                "placeholder": "name@example.ru",
                 "inputmode": "email",
                 "autocomplete": "email",
                 "autocapitalize": "none",
                 "spellcheck": "false",
             }
         )
-        self.fields["phone"].widget.attrs.update(
-            {
-                "data-mask": "phone",
-                "data-max-digits": "14",
-                "placeholder": "+7 (___) ___-__-__",
-                "inputmode": "numeric",
-                "autocomplete": "tel",
-                "maxlength": 22,
-            }
-        )
+        configure_phone_field(self.fields["phone"])
         for field_name, autocomplete in (
             ("last_name", "family-name"),
             ("first_name", "given-name"),
@@ -129,32 +163,10 @@ class SignUpForm(StyledFormMixin, UserCreationForm):
         email = (self.cleaned_data.get("email") or "").strip().lower()
         if not email:
             return None
-        qs = User.objects.filter(email__iexact=email)
-        if self.instance.pk:
-            qs = qs.exclude(pk=self.instance.pk)
-        if qs.exists():
-            raise ValidationError("Пользователь с такой почтой уже существует.")
         return email
 
     def clean_phone(self):
-        phone = self.cleaned_data.get("phone", "").strip()
-        if not phone:
-            return ""
-
-        digits = re.sub(r"\D", "", phone)
-        if digits.startswith("8"):
-            digits = f"7{digits[1:]}"
-        elif not digits.startswith("7"):
-            digits = f"7{digits}"
-
-        if len(digits) < 11 or len(digits) > 14 or not digits.startswith("7"):
-            raise ValidationError("Введите телефон в формате +7 (900) 123-45-67, не более 14 цифр.")
-
-        formatted = f"+7 ({digits[1:4]}) {digits[4:7]}-{digits[7:9]}-{digits[9:11]}"
-        extension = digits[11:]
-        if extension:
-            formatted = f"{formatted} {extension}"
-        return formatted
+        return clean_phone_number(self.cleaned_data.get("phone"))
 
     def clean(self):
         cleaned_data = super().clean()
@@ -173,6 +185,7 @@ class SignUpForm(StyledFormMixin, UserCreationForm):
         return user
 
 
+# пользователь редактирует только личные контактные данные, роль здесь не меняется
 class ProfileForm(StyledFormMixin, forms.ModelForm):
     class Meta:
         model = User
@@ -184,20 +197,27 @@ class ProfileForm(StyledFormMixin, forms.ModelForm):
             "phone",
         )
 
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        configure_phone_field(self.fields["phone"])
+
     def clean_email(self):
         email = (self.cleaned_data.get("email") or "").strip().lower()
         if not email:
             return None
-        qs = User.objects.filter(email__iexact=email).exclude(pk=self.instance.pk)
-        if qs.exists():
-            raise ValidationError("Пользователь с такой почтой уже существует.")
         return email
 
+    def clean_phone(self):
+        return clean_phone_number(self.cleaned_data.get("phone"))
+
+
+# преподаватель видит только назначенные дисциплины и связанные с ними группы
 class TeacherTestForm(StyledFormMixin, forms.ModelForm):
     groups = forms.ModelMultipleChoiceField(
         queryset=AcademicGroup.objects.none(),
         required=False,
         label="Доступные группы",
+        widget=forms.CheckboxSelectMultiple,
     )
 
     class Meta:
@@ -209,7 +229,6 @@ class TeacherTestForm(StyledFormMixin, forms.ModelForm):
             "groups",
             "time_limit_minutes",
             "max_attempts",
-            "is_published",
             "available_from",
             "available_to",
         )
@@ -225,7 +244,7 @@ class TeacherTestForm(StyledFormMixin, forms.ModelForm):
             ),
         }
 
-    def __init__(self, *args, teacher=None, show_published_field=True, **kwargs):
+    def __init__(self, *args, teacher=None, **kwargs):
         super().__init__(*args, **kwargs)
         disciplines = Discipline.objects.all()
         groups = AcademicGroup.objects.all()
@@ -238,8 +257,6 @@ class TeacherTestForm(StyledFormMixin, forms.ModelForm):
         self.fields["groups"].queryset = groups
         if self.instance.pk:
             self.fields["groups"].initial = self.instance.groups.all()
-        if not show_published_field:
-            self.fields.pop("is_published", None)
         self.fields["available_from"].input_formats = ["%Y-%m-%dT%H:%M"]
         self.fields["available_to"].input_formats = ["%Y-%m-%dT%H:%M"]
 
@@ -252,6 +269,7 @@ class TeacherTestForm(StyledFormMixin, forms.ModelForm):
         return cleaned_data
 
 
+# формы вопроса и вариантов ответа используются внутри конструктора тестов
 class QuestionForm(StyledFormMixin, forms.ModelForm):
     class Meta:
         model = Question
@@ -277,6 +295,7 @@ MAX_ANSWER_OPTIONS = 6
 DEFAULT_ANSWER_OPTION_EXTRA = 4
 
 
+# inline-formset ограничивает число вариантов и требует ровно один правильный ответ
 class BaseAnswerOptionInlineFormSet(BaseInlineFormSet):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -300,6 +319,7 @@ class BaseAnswerOptionInlineFormSet(BaseInlineFormSet):
 
 
     def save(self, commit=True):
+        # при сохранении заново выстраиваем порядок вариантов ответа от 1 до N
         active_forms = [
             form for form in self.forms
             if form.cleaned_data and not form.cleaned_data.get("DELETE", False)
@@ -339,6 +359,7 @@ AnswerOptionFormSet = inlineformset_factory(
 )
 
 
+# администраторская форма управляет ролью, группой и паролем при создании пользователя
 class AdminUserForm(StyledFormMixin, forms.ModelForm):
     password1 = forms.CharField(
         required=False,
@@ -378,17 +399,16 @@ class AdminUserForm(StyledFormMixin, forms.ModelForm):
         else:
             self.fields.pop("password1", None)
             self.fields.pop("password2", None)
+        configure_phone_field(self.fields["phone"])
 
     def clean_email(self):
         email = (self.cleaned_data.get("email") or "").strip().lower()
         if not email:
             return None
-        qs = User.objects.filter(email__iexact=email)
-        if self.instance.pk:
-            qs = qs.exclude(pk=self.instance.pk)
-        if qs.exists():
-            raise ValidationError("Пользователь с такой почтой уже существует.")
         return email
+
+    def clean_phone(self):
+        return clean_phone_number(self.cleaned_data.get("phone"))
 
     def clean(self):
         cleaned_data = super().clean()
@@ -396,6 +416,7 @@ class AdminUserForm(StyledFormMixin, forms.ModelForm):
         password2 = cleaned_data.get("password2")
         role = cleaned_data.get("role")
         group = cleaned_data.get("academic_group")
+        # учебная группа обязательна только для студентов
         if role == User.Role.STUDENT and not group:
             self.add_error("academic_group", "Для студента необходимо указать учебную группу.")
         if role != User.Role.STUDENT:
@@ -420,6 +441,7 @@ class AdminUserForm(StyledFormMixin, forms.ModelForm):
         return user
 
 
+# остальные формы обслуживают справочники и фильтрацию журнала действий
 class AdminPasswordResetForm(StyledFormMixin, forms.Form):
     password1 = forms.CharField(widget=forms.PasswordInput, label="Новый пароль")
     password2 = forms.CharField(widget=forms.PasswordInput, label="Подтверждение пароля")
@@ -439,10 +461,17 @@ class AcademicGroupForm(StyledFormMixin, forms.ModelForm):
 
 
 class DisciplineForm(StyledFormMixin, forms.ModelForm):
+    teachers = forms.ModelMultipleChoiceField(
+        queryset=User.objects.filter(role=User.Role.TEACHER),
+        required=False,
+        label="Преподаватели",
+        widget=forms.CheckboxSelectMultiple,
+    )
     groups = forms.ModelMultipleChoiceField(
         queryset=AcademicGroup.objects.all(),
         required=False,
         label="Учебные группы",
+        widget=forms.CheckboxSelectMultiple,
     )
 
     class Meta:

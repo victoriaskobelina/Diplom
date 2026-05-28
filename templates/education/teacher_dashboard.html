@@ -22,15 +22,15 @@
                 <strong>{{ summary.tests_total }}</strong>
             </article>
             <article class="mini-stat">
-                <span>Опубликовано</span>
-                <strong>{{ summary.published_total }}</strong>
+                <span>Завершено попыток</span>
+                <strong>{{ summary.attempts_total }}</strong>
             </article>
         </div>
 
         <section class="panel panel-top-space">
             <div class="section-head">
                 <h2>Мои тесты</h2>
-                <p>Создавайте, редактируйте, публикуйте тесты и переходите к аналитике результатов.</p>
+                <p>Создавайте, редактируйте тесты и переходите к аналитике результатов.</p>
             </div>
             <div class="table-wrap">
                 <table class="data-table">
@@ -40,7 +40,6 @@
                             <th>Дисциплина</th>
                             <th>Статус</th>
                             <th>Попытки</th>
-                            <th>Средний балл</th>
                             <th></th>
                         </tr>
                     </thead>
@@ -49,9 +48,8 @@
                             <tr>
                                 <td>{{ test.title }}</td>
                                 <td>{{ test.discipline.name }}</td>
-                                <td><span class="pill">{{ test.is_published|yesno:"Опубликован,Черновик" }}</span></td>
+                                <td><span class="pill">{{ test.is_published|yesno:"Опубликован,Не опубликован" }}</span></td>
                                 <td>{{ test.attempts_total }}</td>
-                                <td>{{ test.avg_score|default:"-"|floatformat:1 }}</td>
                                 <td class="actions-cell">
                                     <a class="btn btn-secondary btn-small" href="{% url 'education:test_preview' test.pk %}">Открыть</a>
                                     <a class="btn btn-secondary btn-small" href="{% url 'education:report_detail' test.pk %}">Отчёт</a>
@@ -59,7 +57,7 @@
                             </tr>
                         {% empty %}
                             <tr>
-                                <td colspan="6">Тесты ещё не созданы.</td>
+                                <td colspan="5">Тесты ещё не созданы.</td>
                             </tr>
                         {% endfor %}
                     </tbody>

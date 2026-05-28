@@ -16,6 +16,7 @@ from .models import (
 )
 
 
+# встраиваемые блоки позволяют редактировать связанные записи прямо из родительской сущности
 class AnswerOptionInline(admin.TabularInline):
     model = AnswerOption
     extra = 1
@@ -36,6 +37,7 @@ class TestGroupInline(admin.TabularInline):
     extra = 1
 
 
+# расширяем стандартную админку пользователя полями роли и учебной группы
 @admin.register(User)
 class UserAdmin(DjangoUserAdmin):
     fieldsets = DjangoUserAdmin.fieldsets + (
@@ -63,6 +65,7 @@ class UserAdmin(DjangoUserAdmin):
     list_filter = ("role", "is_active", "academic_group")
 
 
+# административные представления справочников и результатов тестирования
 @admin.register(AcademicGroup)
 class AcademicGroupAdmin(admin.ModelAdmin):
     list_display = ("name", "curator")
@@ -79,8 +82,8 @@ class DisciplineAdmin(admin.ModelAdmin):
 
 @admin.register(Test)
 class TestAdmin(admin.ModelAdmin):
-    list_display = ("title", "discipline", "author", "is_published", "max_attempts")
-    list_filter = ("is_published", "discipline")
+    list_display = ("title", "discipline", "author", "max_attempts")
+    list_filter = ("discipline",)
     search_fields = ("title", "description")
     inlines = [TestGroupInline, QuestionInline]
 

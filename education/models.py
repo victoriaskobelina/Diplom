@@ -12,16 +12,18 @@ ROLE_TEACHER = "teacher"
 ROLE_ADMINISTRATOR = "administrator"
 
 
+# переводим процент выполнения теста в привычную пятибалльную оценку
 def grade_from_percent(percent):
-    if percent >= 90:
+    if percent >= 85:
         return "5"
-    if percent >= 75:
+    if percent >= 70:
         return "4"
-    if percent >= 60:
+    if percent >= 55:
         return "3"
     return "2"
 
 
+# менеджер гарантирует, что суперпользователь получает административную роль
 class UserManager(DjangoUserManager):
     def create_superuser(self, username, email=None, password=None, **extra_fields):
         extra_fields.setdefault("is_staff", True)
@@ -36,13 +38,14 @@ class UserManager(DjangoUserManager):
         return super().create_superuser(username, email=email, password=password, **extra_fields)
 
 
+# пользователь хранит роль в системе и дополнительные контактные данные
 class User(AbstractUser):
     class Role(models.TextChoices):
         STUDENT = ROLE_STUDENT, "Студент"
         TEACHER = ROLE_TEACHER, "Преподаватель"
         ADMINISTRATOR = ROLE_ADMINISTRATOR, "Администратор"
 
-    email = models.EmailField("Электронная почта", unique=True, blank=True, null=True)
+    email = models.EmailField("Электронная почта", blank=True, null=True)
     middle_name = models.CharField("Отчество", max_length=150, blank=True)
     phone = models.CharField("Телефон", max_length=32, blank=True)
     role = models.CharField(
@@ -71,6 +74,7 @@ class User(AbstractUser):
         verbose_name_plural = "Пользователи"
 
     def save(self, *args, **kwargs):
+        # нормализуем email и не держим учебную группу у преподавателей/администраторов
         if self.email:
             self.email = self.email.strip().lower()
         else:
@@ -101,6 +105,7 @@ class User(AbstractUser):
         return f"{self.full_name} ({self.get_role_display()})"
 
 
+# учебная группа объединяет студентов и может иметь куратора-преподавателя
 class AcademicGroup(models.Model):
     name = models.CharField("Название группы", max_length=50, unique=True)
     description = models.TextField("Описание", blank=True)
@@ -124,6 +129,7 @@ class AcademicGroup(models.Model):
         return self.name
 
 
+# дисциплина связывает преподавателей, учебные группы и создаваемые тесты
 class Discipline(models.Model):
     name = models.CharField("Дисциплина", max_length=120, unique=True)
     code = models.CharField("Код", max_length=20, blank=True)
@@ -154,6 +160,7 @@ class Discipline(models.Model):
         return self.name
 
 
+# явная связующая модель нужна для собственной таблицы disciplines_groups
 class DisciplineGroup(models.Model):
     discipline = models.ForeignKey(
         Discipline,
@@ -180,6 +187,7 @@ class DisciplineGroup(models.Model):
         return f"{self.discipline} - {self.group}"
 
 
+# тест задает правила доступа, лимит времени, число попыток и привязку к группам
 class Test(models.Model):
     title = models.CharField("Название теста", max_length=200)
     description = models.TextField("Описание", blank=True)
@@ -206,7 +214,6 @@ class Test(models.Model):
     )
     time_limit_minutes = models.PositiveIntegerField("Лимит времени (мин.)", default=30)
     max_attempts = models.PositiveIntegerField("Максимум попыток", default=1)
-    is_published = models.BooleanField("Опубликован", default=False)
     available_from = models.DateTimeField("Доступен с", blank=True, null=True)
     available_to = models.DateTimeField("Доступен до", blank=True, null=True)
     created_at = models.DateTimeField("Создан", auto_now_add=True)
@@ -240,6 +247,10 @@ class Test(models.Model):
             return False
         return True
 
+    @property
+    def is_published(self):
+        return self.is_open_now()
+
     def completed_attempts_for(self, student):
         return self.attempts.filter(student=student, is_finished=True).count()
 
@@ -247,7 +258,8 @@ class Test(models.Model):
         return max(self.max_attempts - self.completed_attempts_for(student), 0)
 
     def is_available_for(self, student):
-        if not self.is_published or not self.is_open_now():
+        # тест доступен только в период публикации, нужной группе и при наличии попыток
+        if not self.is_open_now():
             return False
         if self.groups.exists():
             if not student.academic_group:
@@ -257,6 +269,7 @@ class Test(models.Model):
         return self.completed_attempts_for(student) < self.max_attempts
 
     def normalize_question_order(self):
+        # после удаления вопроса восстанавливаем последовательную нумерацию
         for expected_order, question in enumerate(self.questions.order_by("order", "id"), start=1):
             if question.order != expected_order:
                 self.questions.filter(pk=question.pk).update(order=expected_order)
@@ -265,6 +278,7 @@ class Test(models.Model):
         return self.title
 
 
+# явная связующая модель фиксирует доступность тестов для учебных групп
 class TestGroup(models.Model):
     test = models.ForeignKey(
         Test,
@@ -291,6 +305,7 @@ class TestGroup(models.Model):
         return f"{self.test} - {self.group}"
 
 
+# вопрос хранит текст, необязательное изображение и позицию внутри теста
 class Question(models.Model):
     test = models.ForeignKey(Test, on_delete=models.CASCADE, related_name="questions", verbose_name="Тест")
     text = models.TextField("Текст вопроса")
@@ -308,6 +323,7 @@ class Question(models.Model):
         return f"{self.test.title}: вопрос {self.order}"
 
 
+# вариант ответа отмечается как правильный и сортируется внутри вопроса
 class AnswerOption(models.Model):
     question = models.ForeignKey(
         Question,
@@ -330,6 +346,7 @@ class AnswerOption(models.Model):
         return self.text
 
 
+# попытка прохождения хранит прогресс студента и итоговую оценку
 class TestAttempt(models.Model):
     student = models.ForeignKey(
         settings.AUTH_USER_MODEL,
@@ -376,10 +393,12 @@ class TestAttempt(models.Model):
         return max(int(delta.total_seconds()), 0)
 
     def ensure_answer_placeholders(self):
+        # для каждого вопроса создается строка ответа, чтобы прогресс считался стабильно
         for question in self.test.questions.all():
             StudentAnswer.objects.get_or_create(attempt=self, question=question)
 
     def recalculate_results(self):
+        # итоговый балл пересчитывается по выбранным вариантам при завершении попытки
         total_score = 0
         max_score = self.test.max_score
         for answer in self.answers.select_related("selected_option", "question"):
@@ -403,6 +422,7 @@ class TestAttempt(models.Model):
         return f"{self.student.full_name} - {self.test.title} ({self.attempt_number})"
 
 
+# ответ студента связывает попытку, вопрос и выбранный вариант
 class StudentAnswer(models.Model):
     attempt = models.ForeignKey(
         TestAttempt,
@@ -439,6 +459,7 @@ class StudentAnswer(models.Model):
             raise ValidationError("Выбранный вариант не относится к данному вопросу.")
 
     def save(self, *args, **kwargs):
+        # корректность ответа синхронизируется с выбранным вариантом при каждом сохранении
         self.is_correct = bool(self.selected_option and self.selected_option.is_correct)
         super().save(*args, **kwargs)
 
@@ -446,6 +467,7 @@ class StudentAnswer(models.Model):
         return f"Ответ на вопрос {self.question.order}"
 
 
+# журнал действий хранит важные события для администраторской аналитики
 class ActivityLog(models.Model):
     class ActionType(models.TextChoices):
         AUTH = "auth", "Авторизация"

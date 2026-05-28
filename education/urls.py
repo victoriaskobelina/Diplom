@@ -4,6 +4,7 @@ from . import views
 
 app_name = "education"
 
+# маршруты сгруппированы по сценариям: публичные страницы, кабинеты, тесты и админ-панель
 urlpatterns = [
     path("", views.home, name="home"),
     path("register/", views.register, name="register"),

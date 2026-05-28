@@ -26,11 +26,10 @@
 
         <section class="panel panel-top-space">
             <div class="section-head">
-                <h2>Параметры публикации</h2>
+                <h2>Параметры доступности</h2>
                 <p>Настройка доступности теста, количества попыток и списка учебных групп.</p>
             </div>
             <div class="meta-list">
-                <span>Статус: <strong>{{ test.is_published|yesno:"Опубликован,Черновик" }}</strong></span>
                 <span>Группы: <strong>{{ test.groups.all|join:", "|default:"все доступные" }}</strong></span>
             </div>
             <form method="post" action="{% url 'education:test_delete' test.pk %}" class="inline-form danger-zone">

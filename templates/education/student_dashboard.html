@@ -14,10 +14,6 @@
 
         <div class="stats-strip">
             <article class="mini-stat">
-                <span>Средний балл</span>
-                <strong>{{ average_score }}</strong>
-            </article>
-            <article class="mini-stat">
                 <span>История попыток</span>
                 <strong>{{ attempts|length }}</strong>
             </article>
@@ -58,7 +54,7 @@
                             </tr>
                         {% empty %}
                             <tr>
-                                <td colspan="5">Для вашей группы пока нет опубликованных тестов.</td>
+                                <td colspan="5">Сейчас для вашей группы нет доступных тестов.</td>
                             </tr>
                         {% endfor %}
                     </tbody>

@@ -6,6 +6,7 @@ from django.shortcuts import redirect
 from .models import ActivityLog
 
 
+# записывает действие пользователя вместе с IP-адресом запроса
 def log_activity(request, user, action_type, description):
     ip_address = None
     if request:
@@ -19,6 +20,7 @@ def log_activity(request, user, action_type, description):
     )
 
 
+# определяет стартовый кабинет по роли пользователя
 def dashboard_url_for(user):
     if getattr(user, "is_administrator", False):
         return "education:admin_dashboard"
@@ -27,6 +29,7 @@ def dashboard_url_for(user):
     return "education:student_dashboard"
 
 
+# декоратор защищает view-функции от доступа пользователей с неподходящей ролью
 def role_required(*roles):
     def decorator(view_func):
         @wraps(view_func)

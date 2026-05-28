@@ -34,12 +34,17 @@
 
                 <div class="form-grid{% if single_column_form or title == 'Редактирование пользователя' %} single-column{% endif %}">
                     {% for field in form.visible_fields %}
-                        <div class="form-field {% if field.field.widget.input_type == 'checkbox' %}is-checkbox{% endif %}" data-field-name="{{ field.name }}">
-                            {% if field.field.widget.input_type == 'checkbox' %}
+                        <div class="form-field {% if field.field.widget.input_type == 'checkbox' and not field.field.widget.allow_multiple_selected %}is-checkbox{% elif field.field.widget.input_type == 'checkbox' and field.field.widget.allow_multiple_selected %}is-choice-list{% endif %}" data-field-name="{{ field.name }}">
+                            {% if field.field.widget.input_type == 'checkbox' and not field.field.widget.allow_multiple_selected %}
                                 <label class="checkbox-line">
                                     {{ field }}
                                     <span>{{ field.label }}</span>
                                 </label>
+                            {% elif field.field.widget.input_type == 'checkbox' and field.field.widget.allow_multiple_selected %}
+                                <label>{{ field.label }}</label>
+                                <div class="choice-list">
+                                    {{ field }}
+                                </div>
                             {% else %}
                                 <label for="{{ field.id_for_label }}">{{ field.label }}</label>
                                 {{ field }}
@@ -89,12 +94,17 @@
                                     {% endfor %}
                                     {% for field in subform.visible_fields %}
                                         {% if field.name != "DELETE" %}
-                                        <div class="form-field {% if field.field.widget.input_type == 'checkbox' %}is-checkbox{% endif %}">
-                                            {% if field.field.widget.input_type == 'checkbox' %}
+                                        <div class="form-field {% if field.field.widget.input_type == 'checkbox' and not field.field.widget.allow_multiple_selected %}is-checkbox{% elif field.field.widget.input_type == 'checkbox' and field.field.widget.allow_multiple_selected %}is-choice-list{% endif %}">
+                                            {% if field.field.widget.input_type == 'checkbox' and not field.field.widget.allow_multiple_selected %}
                                                 <label class="checkbox-line">
                                                     {{ field }}
                                                     <span>{{ field.label }}</span>
                                                 </label>
+                                            {% elif field.field.widget.input_type == 'checkbox' and field.field.widget.allow_multiple_selected %}
+                                                <label>{{ field.label }}</label>
+                                                <div class="choice-list">
+                                                    {{ field }}
+                                                </div>
                                             {% else %}
                                                 <label for="{{ field.id_for_label }}">{{ field.label }}</label>
                                                 {{ field }}
