@@ -168,6 +168,37 @@ function initTestAutosave() {
     });
 }
 
+// отсчитывает оставшееся время и отправляет форму при завершении таймера
+function initTestTimer() {
+    const timerPanel = document.querySelector("[data-timer-seconds]");
+    const timerDisplay = document.querySelector("[data-timer-display]");
+    const finishForm = document.getElementById("finish-form");
+    if (!timerPanel || !timerDisplay || !finishForm) {
+        return;
+    }
+
+    let seconds = parseInt(timerPanel.dataset.timerSeconds, 10);
+    if (Number.isNaN(seconds)) {
+        return;
+    }
+
+    const render = () => {
+        const minutes = Math.floor(seconds / 60);
+        const remainder = seconds % 60;
+        timerDisplay.textContent = `${String(minutes).padStart(2, "0")}:${String(remainder).padStart(2, "0")}`;
+    };
+
+    render();
+    const interval = window.setInterval(() => {
+        seconds -= 1;
+        render();
+        if (seconds <= 0) {
+            window.clearInterval(interval);
+            finishForm.submit();
+        }
+    }, 1000);
+}
+
 // для вопроса допускается только один правильный вариант ответа
 window.enforceSingleCorrectCheckbox = function(currentCheckbox) {
     if (!currentCheckbox || !currentCheckbox.checked) {
@@ -332,6 +363,7 @@ document.addEventListener("DOMContentLoaded", () => {
     initRoleDependentFields();
     initInputMasks();
     initTestAutosave();
+    initTestTimer();
     initSingleCorrectCheckboxes();
     initConfirmationModal();
 });

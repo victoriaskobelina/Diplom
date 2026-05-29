@@ -1,7 +1,7 @@
 from functools import wraps
 
 from django.contrib import messages
-from django.shortcuts import redirect, render
+from django.shortcuts import redirect
 
 from .models import ActivityLog
 
@@ -29,15 +29,6 @@ def dashboard_url_for(user):
     return "education:student_dashboard"
 
 
-def forbidden_response(request, message="Доступ запрещён."):
-    return render(
-        request,
-        "403.html",
-        {"error_message": message},
-        status=403,
-    )
-
-
 # декоратор защищает view-функции от доступа пользователей с неподходящей ролью
 def role_required(*roles):
     def decorator(view_func):
@@ -48,7 +39,7 @@ def role_required(*roles):
             if request.user.is_superuser or request.user.role in roles:
                 return view_func(request, *args, **kwargs)
             messages.error(request, "У вас нет доступа к данному разделу.")
-            return forbidden_response(request, "У вас нет доступа к данному разделу.")
+            return redirect(dashboard_url_for(request.user))
 
         return _wrapped_view
 

@@ -227,6 +227,7 @@ class TeacherTestForm(StyledFormMixin, forms.ModelForm):
             "description",
             "discipline",
             "groups",
+            "time_limit_minutes",
             "max_attempts",
             "available_from",
             "available_to",

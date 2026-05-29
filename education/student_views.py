@@ -1,12 +1,12 @@
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
 from django.db.models import Q
-from django.http import JsonResponse
+from django.http import HttpResponseForbidden, JsonResponse
 from django.shortcuts import get_object_or_404, redirect, render
 from django.views.decorators.http import require_POST
 
 from .models import ActivityLog, StudentAnswer, Test, TestAttempt, User
-from .utils import forbidden_response, log_activity, role_required
+from .utils import log_activity, role_required
 
 
 # кабинет студента показывает только доступные тесты и историю попыток
@@ -78,7 +78,7 @@ def start_test(request, pk):
     return redirect("education:take_test", attempt_pk=attempt.pk, order=1)
 
 
-# страница прохождения показывает один вопрос и сохраняет выбранный ответ
+# страница прохождения показывает один вопрос и следит за истечением таймера
 @role_required(User.Role.STUDENT)
 def take_test(request, attempt_pk, order=1):
     attempt = get_object_or_404(
@@ -87,6 +87,17 @@ def take_test(request, attempt_pk, order=1):
         student=request.user,
     )
     if attempt.is_finished:
+        return redirect("education:attempt_result", attempt_pk=attempt.pk)
+
+    if attempt.is_expired:
+        attempt.finish()
+        log_activity(
+            request,
+            request.user,
+            ActivityLog.ActionType.TEST,
+            f"Тест «{attempt.test.title}» завершён по таймеру",
+        )
+        messages.warning(request, "Время вышло, тест завершён автоматически.")
         return redirect("education:attempt_result", attempt_pk=attempt.pk)
 
     questions = list(attempt.test.questions.prefetch_related("options"))
@@ -114,6 +125,9 @@ def take_test(request, attempt_pk, order=1):
 @require_POST
 def save_answer(request, attempt_pk, question_pk):
     attempt = get_object_or_404(TestAttempt, pk=attempt_pk, student=request.user, is_finished=False)
+    if attempt.is_expired:
+        attempt.finish()
+        return JsonResponse({"ok": False, "expired": True}, status=400)
 
     answer = get_object_or_404(StudentAnswer, attempt=attempt, question_id=question_pk)
     option_id = request.POST.get("option_id")
@@ -159,7 +173,7 @@ def attempt_result(request, attempt_pk):
     is_teacher_owner = request.user.is_teacher and attempt.test.author == request.user
     is_admin = request.user.is_administrator or request.user.is_superuser
     if not (is_owner or is_teacher_owner or is_admin):
-        return forbidden_response(request, "У вас нет доступа к результату этой попытки.")
+        return HttpResponseForbidden("Доступ запрещён.")
     if not attempt.is_finished and is_owner:
         return redirect("education:take_test", attempt_pk=attempt.pk, order=1)
 
